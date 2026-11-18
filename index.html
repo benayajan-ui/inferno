@@ -37,6 +37,7 @@
   #card::before { content:""; position:absolute; inset:-80px -130px -120px -70px; z-index:-1; pointer-events:none;
           background:radial-gradient(closest-side, rgba(6,4,3,.86), rgba(6,4,3,.66) 62%, rgba(6,4,3,0)); }
   #card.away { opacity:0; transform:translateY(14px); pointer-events:none; }
+  body:has(#load) #card { visibility:hidden; }            /* nothing shows through the opening screen */
   #card .head { display:flex; align-items:flex-start; gap:10px; padding:0 0 12px; }
   #card h2 { margin:0; font-family:"Bona Nova","David",serif; font-weight:700; font-size:clamp(38px,4.6vw,58px); line-height:1.02; color:#f7e9c9; }
   #card h2::after { content:""; display:block; width:84px; height:2px; margin-top:14px; background:linear-gradient(to left, var(--gold), rgba(227,168,60,0)); }
