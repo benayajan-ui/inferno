@@ -31,6 +31,26 @@ const LINES = {
   charon_go:['כארון', 'הסירה מלאה. עלה, נשמה חיה, ושתוק.'],
   v_boat:   ['וירגיליוס', 'אל תביט במים. בצד השני מחכים מי שלא חטאו, ובכל זאת לא יראו את האור.'],
   v_land:   ['וירגיליוס', 'כאן יורדים. המדרגות האלה מובילות אל המעגל הראשון.'],
+  // --- the first circle: Limbo ---
+  l_in:     ['וירגיליוס', 'זה המעגל הראשון. אין כאן ייסורים, רק געגוע בלי תקווה. כאן גם ביתי.'],
+  l_soul1:  ['נשמה', 'לא חטאנו. רק נולדנו לפני הזמן.'],
+  l_soul2:  ['נשמה', 'אין כאן כאב. יש רק געגוע שאין לו סוף.'],
+  l_poets:  ['וירגיליוס', 'אלה ארבעת גדולי המשוררים. הם יתעוררו רק לפי סדרם. הקשב למה שכל אחד אומר.'],
+  p0:       ['הומרוס', 'אני הראשון. שרתי על מלחמה אחת, ועל דרך ארוכה הביתה.'],
+  p1:       ['הורטיוס', 'אני בא אחריו. כל חיי צחקתי על חולשות בני האדם.'],
+  p2:       ['אובידיוס', 'שלישי אני. סיפרתי על גופים שהחליפו צורה.'],
+  p3:       ['לוקנוס', 'אחרון. שרתי על רומא שנלחמה בעצמה.'],
+  l_sixth:  ['וירגיליוס', 'הם מקבלים אותך ביניהם. אתה השישי בחבורה.'],
+  l_back:   ['וירגיליוס', 'עכשיו נרד. המדרגות מאחורינו.'],
+  l_down:   ['וירגיליוס', 'מכאן מתחיל הגיהנום האמיתי.'],
+  // --- the second circle: the lustful ---
+  c2_in:    ['וירגיליוס', 'מינוס עומד בפתח ושופט כל נשמה. מספר הפעמים שהוא כורך את זנבו הוא מספר המעגל שאליו תרד.'],
+  c2_soul:  ['נשמה', 'אני מחכה לשמוע לאיזה מעגל.'],
+  minos:    ['מינוס', 'אתה שבא אל בית הכאב, ראה היטב לאן אתה נכנס, ובמי אתה בוטח!'],
+  v_minos:  ['וירגיליוס', 'אל תחסום את דרכו. כך רוצים במקום שבו יכולים כל מה שרוצים.'],
+  c2_task:  ['וירגיליוס', 'הבט אל הסערה. מצא את השניים שעפים יחד ואינם נפרדים.'],
+  francesca:['פרנצ\'סקה', 'האהבה הובילה אותנו אל מוות אחד.'],
+  d_faint:  ['דנטה', 'ונפלתי, כפי שנופל גוף מת.'],
 };
 // the notebook: the poem Dante is writing as he goes
 const NOTES = [
@@ -39,6 +59,9 @@ const NOTES = [
   ['non ragioniam di lor, ma guarda e passa', 'אל נדבר בהם; הבט, ועבור', 'ג׳, 51'],
   ['Questi non hanno speranza di morte', 'לאלה אין אפילו תקווה למות', 'ג׳, 46'],
   ['Caron dimonio, con occhi di bragia', 'כארון השד, שעיניו גחלים', 'ג׳, 109'],
+  ['sì ch\'io fui sesto tra cotanto senno', 'והייתי שישי בין חכמים כאלה', 'ד׳, 102'],
+  ['Amor condusse noi ad una morte', 'האהבה הובילה אותנו אל מוות אחד', 'ה׳, 106'],
+  ['E caddi come corpo morto cade', 'ונפלתי, כפי שנופל גוף מת', 'ה׳, 142'],
 ];
 
 export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM }) {
@@ -52,7 +75,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
 
   // --- collision: the rock, the stairs and the gate become one invisible mesh with a BVH ---------
   function buildCollider() {
-    const SOLID = /^(Funnel_|Entrance_(Steps|Tunnel|Backing|HellGate)|Kerb_|Stair_|Gate_(Pillar|Lintel))/, chunks = []; let n = 0;
+    const SOLID = /^(Funnel_|Entrance_(Steps|Tunnel|Backing|HellGate)|Kerb_|Stair_|Castle_(?!Stream)|Gate_(Pillar|Lintel))/, chunks = []; let n = 0;
     scene.updateMatrixWorld(true);
     scene.traverse((o) => {
       if (!o.isMesh || o.isInstancedMesh) return;
@@ -99,7 +122,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       e.low.updateMatrixWorld(true); let changed = false;
       for (let i = 0; i < e.low.count; i++) {
         w.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
-        const r = Math.hypot(w.x, w.z); if (r < 50) continue;
+        const r = Math.hypot(w.x, w.z); if (r < 40) continue;
         const a = (Math.atan2(-w.z, w.x) * 180 / Math.PI + 360) % 360;
         if (Math.abs(w.y - ZF) < 1.2 && a > 98 && a < 153 && r > 52.7 && r < 53.75) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, zero); changed = true; gone++; continue; }
         const k = cell(w.x, w.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(w.x, w.y, w.z);
@@ -114,7 +137,11 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       for (let k = 0; k < list.length; k += 3) { if (Math.abs(list[k + 1] - pos.y) > 1.5) continue;
         const dx = pos.x - list[k], dz = pos.z - list[k + 2], d = Math.hypot(dx, dz);
         if (d < 0.5 && d > 1e-4) { pos.x += dx / d * (0.5 - d); pos.z += dz / d * (0.5 - d); } } }
+    // Virgil and the statues that woke are solid too
+    for (const o of solids) { if (!o.visible) continue; o.getWorldPosition(v); if (Math.abs(v.y - pos.y) > 1.6) continue;
+      const dx = pos.x - v.x, dz = pos.z - v.z, d = Math.hypot(dx, dz); if (d < 0.48 && d > 1e-4) { pos.x += dx / d * (0.48 - d); pos.z += dz / d * (0.48 - d); } }
   }
+  const solids = [];
   function walk(dt) {
     let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y;
     let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
@@ -144,12 +171,12 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     [p(53.3, 136, ZF), 1], [p(53.25, 130, ZF), 0], [p(53.25, 124.6, ZF), 1]];
   let guide = null, guideAt = 0, guideLight = null, guideHi = false, guideRide = false;
   function setupGuide() {
-    for (const o of kept) if (/^(Dante_(Wood|Gate|Acheron)|Virgil_(Wood|Acheron))$/.test(o.userData.name)) o.visible = false;   // you are Dante
+    for (const o of kept) if (/^(Dante|Virgil)_/.test(o.userData.name) && o.userData.name !== 'Virgil_Gate') o.visible = false;   // you are Dante; Virgil walks with you
     const src = kept.find((o) => o.userData.name === 'Virgil_Gate'); if (!src) return;
     src.updateMatrixWorld(true); const q = new THREE.Quaternion(), sc = new THREE.Vector3();
     src.matrixWorld.decompose(v, q, sc); scene.attach(src);
     guide = src; guide.userData.fwd = -1; guide.scale.copy(sc); guide.position.copy(PATH[0][0]); guide.frustumCulled = false;
-    guideLight = new THREE.PointLight(0xa9bcff, 5, 7, 1.7); scene.add(guideLight);
+    guideLight = new THREE.PointLight(0xa9bcff, 5, 7, 1.7); scene.add(guideLight); solids.push(guide);
   }
   function moveGuide(dt) {
     if (!guide) return;
@@ -202,7 +229,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function liven(o, turn) {
     o.material = o.material.clone();
     const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l);
-    alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l });
+    alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l }); if (!solids.includes(o)) solids.push(o);
     return o;
   }
   // pull the statue nearest to a point out of its instanced batch, so it can move on its own
@@ -251,12 +278,12 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
 
   // --- what happens where ---------------------------------------------------------------------------
-  const find = (name) => kept.find((o) => o.userData.name === name);
+  const find = (name) => kept.find((o) => o.userData.name === name) || kept.find((o) => (o.userData.name || '').startsWith(name + '_'));   // the beasts are Beast_Lion_01 ...
   const TRIG = [
     { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) liven(o, false); } } },
     { at: g(76, 0, 0), r: 4.6, run: () => { say('gate'); note(1); } },
     { at: g(65.5, 0, stairY(65.5)), r: 2.6, run: () => say('v_tunnel') },
-    { at: g(55.4, 0, ZF), r: 2.6, run: () => say('v_view', null, true) },                 // the pit opens in front of you
+    { at: g(55.4, 0, ZF), r: 2.6, run: () => { title('המבוא', 'חוף האכרון'); say('v_view', null, true); } },                 // the pit opens in front of you
     { at: p(53.3, 147, ZF), r: 2.2, run: () => { say('v_vest', null, true); note(2); } },
     { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
@@ -318,10 +345,102 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     phase = 'landed'; const q = p(50.55, 84.2, 0), gy = groundAt(q.x, ZF, q.z); pos.set(q.x, gy === null ? ZF : gy, q.z);
     yaw = Math.atan2(-Math.sin(rad(84.2)), -Math.cos(rad(84.2))) + Math.PI;               // look down the stair, towards 89 degrees
     if (guide) { scene.attach(guide); const w = p(50.5, 90.4, 0), wy = groundAt(w.x, -14.2, w.z); guide.position.set(w.x, wy === null ? -14.8 : wy, w.z); guide.rotation.set(0, guide.rotation.y, 0); }
-    say('v_land', null, true); TRIG.push({ at: p(50.5, 89.3, -14.8), r: 1.3, run: end });
+    say('v_land', null, true); TRIG.push({ at: p(50.5, 89.3, -14.8), r: 1.3, run: enterLimbo });
   }
 
-  function end() { game.ended = true; $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
+  // ======================= the circles after the river =========================================
+  const L1 = S * -40.6, L2 = S * -49.3;                                                  // floors of Limbo and of the second circle
+  const arc = (r, a0, a1, y, n = Math.max(2, Math.ceil(Math.abs(a1 - a0) / 3))) => Array.from({ length: n + 1 }, (_, i) => p(r, a0 + (a1 - a0) * i / n, y));
+  const stair2 = Array.from({ length: 7 }, (_, i) => p(47.1, 95.6 - i * 0.9, L1 - 0.2 + (L2 - L1) * i / 6));   // top at 96 degrees, foot at 90
+  const ROUTES = {
+    // the first stair stands on the outer half of the ledge between 84 and 89 degrees: the road passes inside it
+    limboIn: [p(50.5, 90.2, L1), p(48.9, 89.6, L1), ...arc(48.7, 88, 82, L1), ...arc(50.0, 79, 60, L1), p(49.8, 57.5, L1)],          // the castle wall starts near 43 degrees: the poets stand before it
+    limboOut: [...arc(49.9, 58, 79, L1), ...arc(48.7, 82, 92, L1), p(48.2, 95.0, L1), ...stair2, p(46.6, 89.4, L2)],
+    toMinos: [...arc(44.8, 88.5, 81.5, L2)],
+    toLovers: [...arc(44.8, 83, 99.5, L2)],
+  };
+  // the guide takes a new road: he starts at its first point and waits every third point and at the end
+  function route(name) { const pts = ROUTES[name]; PATH.length = 0; pts.forEach((q, i) => PATH.push([q, i % 3 === 2 || i === pts.length - 1 ? 1 : 0]));
+    guideAt = 0; guideRide = false; if (guide) { if (guide.parent !== scene) scene.attach(guide); guide.rotation.set(0, guide.rotation.y, 0); if (guide.position.distanceTo(pts[0]) > 6) guide.position.copy(pts[0]); } }
+  // a lane through the crowd along the roads, so nobody has to walk through statues
+  function clearAlong(pts, w) {
+    const q = new THREE.Vector3(), ab = new THREE.Vector3(), ap = new THREE.Vector3(); let gone = 0;
+    for (const e of LOD) {
+      let moving = false; for (let o = e.low.parent; o; o = o.parent) if ((o.userData.name || '').startsWith('ANIM_')) moving = true;
+      if (moving || !/^(Fig_|Char_)/.test(e.key)) continue;
+      e.low.updateMatrixWorld(true); let changed = false;
+      for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue;
+        q.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
+        for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1]; if (Math.abs(q.y - (a.y + b.y) / 2) > 1.8) continue;
+          ab.subVectors(b, a); ap.subVectors(q, a); const t = Math.max(0, Math.min(1, (ap.x * ab.x + ap.z * ab.z) / (ab.x * ab.x + ab.z * ab.z || 1)));
+          if (Math.hypot(ap.x - ab.x * t, ap.z - ab.z * t) < w) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, ZERO); changed = true; gone++; break; } } }
+      if (changed) e.low.instanceMatrix.needsUpdate = true;
+    }
+    return gone;
+  }
+  // a chapter title that rises and fades when a new place begins
+  let titleT = 0;
+  function title(big, small) { $('gTitleB').textContent = big; $('gTitleS').textContent = small || ''; $('gTitle').classList.add('on'); clearTimeout(titleT); titleT = setTimeout(() => $('gTitle').classList.remove('on'), 4200); }
+  const hud = (text) => { $('gTask').textContent = text || ''; $('gTask').classList.toggle('on', !!text); };
+  const save = (cp) => { try { localStorage.setItem('inferno_cp', cp); } catch (e) {} };
+  const speaker = (at, reach, to) => { const o = extract(at, reach); if (o && to) { o.position.x = to.x; o.position.z = to.z; } return o; };
+
+  // --- Limbo: the four poets wake only in their own order (Homer, Horace, Ovid, Lucan: Inferno IV, 88-90) ---
+  const poets = [], spoke = { l1: null, l2: null, c2: null }; let poetAt = 0, poetsOn = false;
+  function setupStages() {
+    const order = [2, 0, 3, 1];                                                          // who stands where: Ovid, Homer, Lucan, Horace
+    order.forEach((rank, i) => { const o = find('Poet_' + i); if (!o) return; scene.attach(o); const q = p(48.55, 54.9 - i * 2.5, 0);
+      o.position.x = q.x; o.position.z = q.z; o.userData.fwd = -1; o.rotation.set(0, Math.atan2(q.x, q.z), 0); solids.push(o); poets.push({ o, rank, away: true }); });
+    spoke.l1 = speaker(p(50.2, 78, L1), 3.5, p(50.65, 78, 0)); spoke.l2 = speaker(p(50.2, 64, L1), 3.5, p(50.65, 64, 0));
+    spoke.c2 = speaker(p(45.8, 86, L2), 3, p(45.9, 86, 0));
+    game.lane = clearAlong(ROUTES.limboIn, 0.85) + clearAlong(arc(49.75, 58, 46, L1), 0.8) + clearAlong(arc(48.55, 56.5, 46, L1), 0.7) + clearAlong(ROUTES.limboOut, 0.85) + clearAlong(ROUTES.toMinos, 0.6) + clearAlong(ROUTES.toLovers, 0.75);
+    for (const n of ['Storm', 'Storm2']) if (ANIM[n]) ANIM[n].p.y += 1.5;                 // the storm flies over your head, not through it
+    for (const n of ['Francesca', 'Paolo']) { const o = find(n); if (o) { scene.attach(o); lovers.push({ o, y: o.position.y }); } }
+  }
+  function enterLimbo() {
+    phase = 'limbo'; save('limbo'); title('לימבו', 'המעגל הראשון'); route('limboIn'); say('l_in', null, true);
+    TRIG.push({ at: p(50.0, 79.5, L1), r: 2.6, run: () => { if (spoke.l1) liven(spoke.l1, true); murmur('l_soul1', spoke.l1 ? spoke.l1.position : p(50.6, 78, L1)); } },
+      { at: p(50.0, 65.5, L1), r: 2.6, run: () => { if (spoke.l2) liven(spoke.l2, true); murmur('l_soul2', spoke.l2 ? spoke.l2.position : p(50.6, 64, L1)); } },
+      { at: p(49.8, 59.5, L1), r: 3, run: () => say('l_poets', () => { poetsOn = true; hud('הער את ארבעת המשוררים לפי סדרם · 0/4'); }, true) });
+  }
+  function runPoets() {
+    if (!poetsOn) return;
+    for (const q of poets) { const d = Math.hypot(q.o.position.x - pos.x, q.o.position.z - pos.z);
+      if (d > 2.6) { q.away = true; continue; } if (d > 1.7 || !q.away || q.woke) continue;
+      q.away = false;
+      if (q.rank === poetAt) { q.woke = true; liven(q.o, true); murmur('p' + q.rank, q.o.position); poetAt++; hud(`הער את ארבעת המשוררים לפי סדרם · ${poetAt}/4`);
+        if (poetAt === 4) { poetsOn = false; hud(''); say('l_sixth', () => { note(5); route('limboOut'); say('l_back', null, true);
+          TRIG.push({ at: p(47.3, 95.4, L1), r: 1.5, run: () => say('l_down') }, { at: p(46.9, 90.0, L2), r: 1.4, run: enterLust }); }, true); } }
+      else murmur('p' + q.rank, q.o.position);                                             // out of turn: he speaks, and stays stone
+    }
+  }
+
+  // --- the second circle: Minos at the door, then the two who fly together in the storm (Inferno V) ---
+  const lovers = []; let loversOn = false, loversDown = 0, faintT = -1;
+  function enterLust() {
+    phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); say('c2_in', null, true);
+    TRIG.push({ at: p(44.8, 86.5, L2), r: 2.4, run: () => { if (spoke.c2) liven(spoke.c2, true); murmur('c2_soul', spoke.c2 ? spoke.c2.position : p(45.9, 86, L2)); } },
+      { at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) liven(m, false);
+        say('minos', null, true); say('v_minos', null, true); say('c2_task', () => { loversOn = true; hud('מצא בסערה את השניים שעפים יחד'); route('toLovers'); }, true); } });
+  }
+  function runLovers(dt) {
+    for (const l of lovers) l.o.position.y = l.y + Math.sin(performance.now() / 900 + l.y) * 0.12 - loversDown;        // they drift, and come down when called
+    if (!lovers.length) return;
+    const o = lovers[0].o, d = Math.hypot(o.position.x - pos.x, o.position.z - pos.z);
+    if (loversOn && d < 3.4 && Math.abs(pos.y - L2) < 1.5) { loversOn = false; hud(''); for (const l of lovers) liven(l.o, false);
+      faintT = -2; say('francesca', () => { note(6); say('d_faint', () => { note(7); faintT = 0; }, true); }, true); }
+    if (faintT === -2) loversDown = Math.min(1.75, loversDown + dt * 0.9);
+    if (faintT >= 0) { faintT += dt; $('gFade').style.opacity = Math.min(1, faintT / 2.6); pitch = Math.min(1.2, pitch + dt * 0.35);
+      if (faintT > 3.2 && !game.ended) end('סוף הפרק הראשון'); }
+  }
+  // the figures the game handles one by one are shown in their detailed version as soon as it has loaded
+  let upT = 0;
+  function upgrade(dt) { if ((upT += dt) < 1) return; upT = 0;
+    for (const o of kept) { if (o.userData.hi || !o.visible || o === guide || !detail.has(o.userData.meshKey)) continue;
+      const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; o.geometry = geo; o.material = mat.clone(); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
+  function stages(dt) { upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); }
+
+  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
   function bind() {
@@ -351,21 +470,30 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     addEventListener('resize', () => { if (game.active) { camera.fov = 68; camera.updateProjectionMatrix(); } });
   }
 
-  game.start = () => {
+  game.saved = () => { try { return localStorage.getItem('inferno_cp'); } catch (e) { return null; } };
+  game.start = (cp) => {
     buildCollider(); setupBoat();
     // the two souls that will speak are taken out of the crowd first and stood by the rock wall, clear of the walking lane
     for (const a of [142.4, 132.8]) { const o = extract(p(53.3, a, ZF), 3.2); if (o) { const q = p(54.0, a, 0); o.position.x = q.x; o.position.z = q.z; } souls.push(o); }
-    setupQuest(); clearLane(); setupGuide(); bind();
+    setupQuest(); setupStages(); clearLane(); setupGuide(); bind();
     camera.near = 0.07; camera.fov = 68; camera.updateProjectionMatrix();
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
     yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
     document.body.classList.add('playing');
-    game.active = true; note(0); say('v_start');
+    game.active = true; note(0);
+    if (cp === 'limbo' || cp === 'lust') {                                               // pick up where the last visit stopped
+      for (const t of TRIG) t.done = true; for (let i = 1; i < (cp === 'lust' ? 6 : 5); i++) note(i);
+      if (boat) placeBoat(LAND);
+      const q = cp === 'lust' ? p(46.9, 90.0, L2) : p(50.5, 89.3, L1); pos.copy(q); const y0 = groundAt(q.x, q.y, q.z); if (y0 !== null) pos.y = y0;
+      yaw = rad(90) + Math.PI;                                                          // both roads start towards the smaller angles
+      if (cp === 'lust') enterLust(); else enterLimbo();
+      if (guide) guide.position.copy(PATH[0][0]);
+    } else { say('v_start'); title('היער האפל', 'בחצי דרכם של חיינו'); }
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); speak(dt); murmuring(dt); stir(dt); };
+  game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }

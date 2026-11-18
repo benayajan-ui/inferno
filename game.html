@@ -151,6 +151,11 @@
   #gText { font-size:clamp(18px,2.3vw,25px); line-height:1.4; }
   #gNote { position:fixed; top:14px; right:16px; z-index:5; display:none; border:1px solid var(--line); background:rgba(8,5,4,.55); border-radius:999px; padding:6px 16px; font-size:14px; color:var(--gold); transition:background .4s, color .4s; }
   body.playing #gNote, body.playing #gHint { display:block; }
+  #gTitle { position:fixed; left:0; right:0; top:26vh; z-index:5; text-align:center; opacity:0; transform:translateY(10px); transition:opacity 1.4s, transform 1.4s; pointer-events:none; text-shadow:0 2px 4px #000, 0 0 24px rgba(0,0,0,.9); }
+  #gTitle.on { opacity:1; transform:none; }
+  #gTitleS { display:block; font-size:16px; letter-spacing:.14em; color:var(--gold); margin-bottom:6px; }
+  #gTitleB { display:block; font-family:"Bona Nova","David",serif; font-weight:700; font-size:clamp(46px,8vw,92px); line-height:1; color:#f7e9c9; }
+  #gFade { position:fixed; inset:0; z-index:4; background:#000; opacity:0; pointer-events:none; }
   #gTask { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5; display:none; padding:6px 18px; border:1px solid var(--line); border-radius:999px; background:rgba(8,5,4,.55); color:var(--gold); font-size:15px; white-space:nowrap; }
   #gTask.on { display:block; }
   #gNote.new { background:var(--gold); color:#1a0f08; }
@@ -215,16 +220,18 @@
 </dialog>
 <div id="gSub2"><span id="gWho2"></span><span id="gText2"></span></div>
 <div id="gSub" aria-live="polite"><span id="gWho"></span><span id="gText"></span></div>
+<div id="gFade"></div>
+<div id="gTitle"><span id="gTitleS"></span><span id="gTitleB"></span></div>
 <div id="gTask"></div>
 <button id="gNote" type="button">המחברת 0/5</button>
 <div id="gHint">W A S D או גלגלת ללכת · עכבר להביט · Shift לרוץ · N למחברת <b>· לחיצה על המסך ממשיכה</b></div>
 <div id="gBook"><div><h2>המחברת</h2><p>השורות שנאספו בדרך. לחיצה סוגרת.</p><ul id="gList"></ul></div></div>
 <div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.reload()">לשחק שוב</button><a href="./">לאתר</a></div></div>
 <div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
-  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, ולמטה אל חוף האכרון. שם צריך למלא את הסירה של כארון כדי לחצות. כמה דקות.</p>
+  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה אל שני המעגלים הראשונים. כעשר דקות.</p>
   <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: צד שמאל של המסך ללכת, צד ימין להביט</p>
   <em lang="it">Lasciate ogne speranza, voi ch'intrate</em>
-  <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
+  <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="resume" type="button" hidden></button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
 </div></div>
 
 <script type="importmap">
@@ -243,7 +250,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=12';
+import { createGame } from './game.js?v=18';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
 const VER = 18;
@@ -410,7 +417,7 @@ function zoneTint(p) {       // souls take the colour of the place they suffer i
   return 0;
 }
 
-const KEEP = /^((Dante|Virgil)_(Wood|Gate|Acheron)|Charon|Beast_\w+)$/, kept = [];
+const KEEP = /^((Dante|Virgil)_\w+|Charon|Beast_\w+|Poet_\d|Minos|Francesca|Paolo)$/, kept = [];
 function prepare(gltf) {
   const json = gltf.parser.json, assoc = gltf.parser.associations, root = gltf.scene;
   root.updateMatrixWorld(true);
@@ -689,6 +696,8 @@ loader.load(`inferno_web.glb?v=${VER}`, (gltf) => {
   const open = () => { load.style.opacity = 0; setTimeout(() => load.remove(), 900); };
   load.classList.add('ready');
   $('begin').addEventListener('click', () => { open(); sound.start(); game.start(); });
+  const cp = game.saved(); if (cp === 'limbo' || cp === 'lust') { $('resume').hidden = false; $('resume').textContent = cp === 'lust' ? 'להמשיך מהמעגל השני' : 'להמשיך מהמעגל הראשון';
+    $('resume').addEventListener('click', () => { open(); sound.start(); game.start(cp); }); }
   if (Q.has('fps')) window.__game = game;
   loadDetail();                                   // the game always needs the detailed statues: the ones that wake are shown close up
 }, (e) => { if (e.total) bar.style.width = (100 * e.loaded / e.total) + '%'; },
