@@ -13,11 +13,14 @@ export const g = (x, y, z) => ({ r: Math.hypot(x, y), a: GATE_ANGLE + Math.atan2
 const stairZ = (r) => (r <= 55.2 ? ZF : ZF + (r - 55.2) * (-ZF / (71 - 55.2)));
 
 // The ten ditches of Malebolge (radii from scripts/build_funnel.py: BOLGE_OUTER 52, bank 1.6, ditch 2.64, drop 3.3).
-// Every ditch is seen from over the pit, 5 m further in, looking outwards and down.
+// The ditches are deep and narrow (2 m deep, 1 m wide), so a view from the side only shows heads over the bank.
+// Each one is seen along its own length instead: the eye hangs over the ditch about 5 m further round,
+// between two bridges (they cross at 30, 90, 150 degrees...), looking down into it.
 const ditch = (k) => {
   const r = S * (49.08 - 4.24 * k), bank = S * (-130 - 3.3 * k), floor = bank - S * 5.7;
-  const re = r - 5, up = k === 6 ? 3.6 : 2.2 + Math.max(0, k - 6) * 0.6;   // inner ditches: higher, over the flames of the eighth
-  return { eye: re >= 0 ? p(re, 100, bank + up) : p(-re, 280, bank + up), target: p(r, 82, floor + 0.9) };
+  const d = Math.min(26, (5 / r) * 180 / Math.PI);
+  const up = k === 7 ? 3.6 : 1.7;                          // the eighth ditch is full of tall flames: look from above them
+  return { eye: p(r + (k === 7 ? 0.9 : 0.05), 58 + d, bank + up), target: p(r, 56, floor + 1.0) };
 };
 const BOLGE = [
   { title: `הסרסורים והמפתים`, canto: `שיר י״ח`,
@@ -28,7 +31,8 @@ const BOLGE = [
   { title: `החנפנים`, canto: `שיר י״ח`,
     it: `Qua giù m'hanno sommerso le lusinghe / ond'io non ebbi mai la lingua stucca`, he: `לכאן הטביעו אותי החנופות, שלשוני מעולם לא שבעה מהן`, ref: `התופת, י״ח, 125–126`,
     text: [`מי שחיו מדברי חלקות טבועים בתעלה מלאה צואה, נאנחים ומכים את עצמם בכפות ידיהם. הגדות מכוסות עובש מן האדים שעולים מלמטה.`,
-           `אלסיו אינטרמיני מלוקה מודה שהחנופה היא שהטביעה אותו. לידו תאיס, הקורטיזנה מן המחזה של טרנטיוס.`] },
+           `אלסיו אינטרמיני מלוקה מודה שהחנופה היא שהטביעה אותו. לידו תאיס, הקורטיזנה מן המחזה של טרנטיוס.`],
+    look: `החוטאים שקועים בתעלה, ורק ראשים, כתפיים וידיים מבצבצים.` },
   { title: `סוחרי הקודש`, canto: `שיר י״ט`,
     it: `O Simon mago, o miseri seguaci`, he: `הו שמעון הקוסם, הו חסידיו האומללים`, ref: `התופת, י״ט, 1`,
     text: [`הסימוניסטים, מי שמכרו וקנו משרות כנסייה, תקועים בראשם למטה בבורות עגולים בסלע, ורק רגליהם בולטות החוצה. להבות מלחכות את כפות רגליהם.`,
@@ -43,7 +47,7 @@ const BOLGE = [
     it: `Tal, non per foco ma per divin' arte, / bollia là giuso una pegola spessa`, he: `כך, לא באש אלא במלאכת האל, רתחה שם למטה זפת סמיכה`, ref: `התופת, כ״א, 16–17`,
     text: [`מי שמכרו טובות ומשרות ציבור שקועים בזפת רותחת, כמו זו שבמספנת ונציה. מעליהם חבורת שדים, המלברנקה, ומי שמרים את ראשו מעל הזפת נתפס בקלשונים.`,
            `מנהיג השדים, מלקודה, נותן למשוררים ליווי של עשרה שדים ומשקר להם בעניין הגשר. אחד החוטאים, צ'מפולו מנווארה, מערים על השדים וקופץ בחזרה לזפת, ושניים מהם נופלים פנימה תוך כדי קטטה.`],
-    look: `השדים מרחפים מעל הזפת.` },
+    look: `ראשים וידיים מבצבצים מן הזפת המבעבעת, והשדים מושכים חוטאים החוצה.` },
   { title: `הצבועים`, canto: `שיר כ״ג`,
     it: `Là giù trovammo una gente dipinta`, he: `שם למטה מצאנו אנשים צבועים`, ref: `התופת, כ״ג, 58`,
     text: [`הצבועים צועדים בצעדים איטיים, בוכים ועייפים, בגלימות עם ברדסים: מבחוץ הן מוזהבות ומסנוורות, ומבפנים עשויות עופרת כבדה.`,
@@ -52,7 +56,8 @@ const BOLGE = [
   { title: `הגנבים`, canto: `שירים כ״ד–כ״ה`,
     it: `Vita bestial mi piacque e non umana`, he: `חיי בהמה מצאו חן בעיניי, לא חיי אדם`, ref: `התופת, כ״ד, 124`,
     text: [`התעלה מלאה נחשים. הגנבים רצים ביניהם עירומים, וידיהם קשורות מאחור בנחשים. מי שננשך נשרף לאפר וקם מחדש, ואחרים מחליפים צורה עם הנחשים: האדם נעשה נחש, והנחש אדם.`,
-           `ואני פוצ'י מפיסטויה, שגנב את אוצר הכנסייה, מתוודה מתוך בושה, ואחר כך מקלל את האל בתנועת יד גסה.`] },
+           `ואני פוצ'י מפיסטויה, שגנב את אוצר הכנסייה, מתוודה מתוך בושה, ואחר כך מקלל את האל בתנועת יד גסה.`],
+    look: `נחשים כרוכים על הגנבים וזוחלים על רצפת התעלה.` },
   { title: `יועצי המרמה`, canto: `שירים כ״ו–כ״ז`,
     it: `fatti non foste a viver come bruti, / ma per seguir virtute e canoscenza`, he: `לא נוצרתם לחיות כבהמות, אלא לרדוף אחר מעלה ודעת`, ref: `התופת, כ״ו, 119–120`,
     text: [`התעלה נוצצת מלהבות כמו עמק מלא גחליליות. בכל להבה מסתתר חוטא אחד: מי שהשתמשו בשכלם כדי לייעץ עצות מרמה.`,

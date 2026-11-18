@@ -199,9 +199,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { STOPS, S, ICE, ZF, T } from './stops.js?v=23';
+import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
-const VER = 17;
+const VER = 18;
 const Q = new URLSearchParams(location.search);
 // phones and weak machines: no bloom, no near-camera statue swap, fewer particles
 const LITE = Q.has('lite') || matchMedia('(max-width: 720px)').matches || (navigator.deviceMemory && navigator.deviceMemory < 4);
@@ -282,7 +282,7 @@ const FIRES = [
 // --- liquids: a small shader that flows around the pit ------------------------
 function liquid(c1, c2, glow, flow, sc, opacity = 1) {
   return new THREE.ShaderMaterial({
-    transparent: opacity < 1,
+    transparent: opacity < 1, side: THREE.DoubleSide,     // some surfaces in the model face down (pitch, filth)
     uniforms: { uT, fogC, fogD, c1: { value: new THREE.Color(c1) }, c2: { value: new THREE.Color(c2) },
                 glow: { value: glow }, flow: { value: flow }, sc: { value: sc }, op: { value: opacity } },
     vertexShader: 'varying vec3 w; void main(){ vec4 p = modelMatrix * vec4(position,1.); w = p.xyz; gl_Position = projectionMatrix * viewMatrix * p; }',
@@ -310,7 +310,7 @@ function liquid(c1, c2, glow, flow, sc, opacity = 1) {
 const LIQUIDS = {
   Acheron: liquid(0x0b1c2e, 0x2c5a78, 0, 0.010, 0.55), Styx: liquid(0x0f1a10, 0x38492a, 0, 0.004, 0.5),
   Phlegethon: liquid(0x4a0606, 0xc81e10, 0.7, 0.020, 0.9), Blood_Rivulet_Fall: liquid(0x4a0606, 0xc81e10, 0.7, 0.03, 0.9),
-  B5_Pitch: liquid(0x050404, 0x241208, 0.25, 0.006, 1.6), B2_Filth: liquid(0x1c1408, 0x4a3a18, 0, 0.003, 1.4),
+  B5_Pitch: liquid(0x030303, 0x2a1508, 0.3, 0.006, 1.2), B2_Filth: liquid(0x2a1a08, 0x5e4118, 0.06, 0.003, 1.1),
   Mud: liquid(0x1a140d, 0x3c2f20, 0, 0.002, 0.8), Castle_Stream: liquid(0x12283a, 0x4a86a6, 0, 0.02, 1.2),
 };
 
