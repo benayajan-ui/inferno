@@ -157,7 +157,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
         w.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
         const r = Math.hypot(w.x, w.z); if (r < 40) continue;
         const a = (Math.atan2(-w.z, w.x) * 180 / Math.PI + 360) % 360;
-        if (Math.abs(w.y - ZF) < 1.2 && a > 98 && a < 153 && r > 52.7 && r < 53.75) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, zero); changed = true; gone++; continue; }
+        if (Math.abs(w.y - ZF) < 1.2 && ((a > 98 && a < 153 && r > 52.7 && r < 53.75) || (a > 148.0 && a < 152.0 && r >= 53.75 && r < 56.6))) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, zero); changed = true; gone++; continue; }
         const k = cell(w.x, w.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(w.x, w.y, w.z);
       }
       if (changed) e.low.instanceMatrix.needsUpdate = true;

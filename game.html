@@ -170,8 +170,15 @@
   #gPause button.main { background:var(--gold); color:#1a0f08; border-color:var(--gold); font-weight:700; padding:10px 28px; font-size:17px; }
   #gPause .back { display:inline-block; margin-top:10px; color:var(--dim); font-size:13px; }
   #gFade { position:fixed; inset:0; z-index:4; background:#000; opacity:0; pointer-events:none; }
-  #gTask { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5; display:none; padding:6px 18px; border:1px solid var(--line); border-radius:999px; background:rgba(8,5,4,.55); color:var(--gold); font-size:15px; white-space:nowrap; }
-  #gTask.on { display:block; }
+  /* the task: floating text with a soft shadow, like the site's card - no box, at the side */
+  #gTask { position:fixed; top:62px; right:22px; z-index:5; display:none; width:min(300px,44vw); text-align:right; pointer-events:none;
+           font-family:"Frank Ruhl Libre","David",serif; font-size:19px; font-weight:500; line-height:1.3; color:#f7e9c9;
+           text-shadow:0 1px 2px #000, 0 0 9px rgba(0,0,0,.95), 0 0 24px rgba(0,0,0,.85); }
+  #gTask::before { content:"המשימה"; display:block; font-size:12.5px; font-weight:700; letter-spacing:.08em; color:var(--gold); margin-bottom:3px; }
+  #gTask::after { content:""; display:block; width:56px; height:2px; margin-top:8px; background:linear-gradient(to left, var(--gold), rgba(227,168,60,0)); }
+  #gTask.on { display:block; animation:gTaskIn .5s ease-out; }
+  @keyframes gTaskIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  @media (max-width:700px) { #gTask { font-size:16px; top:56px; right:14px; } }
   #gNote.new { background:var(--gold); color:#1a0f08; }
   #gHint { position:fixed; top:16px; left:16px; z-index:5; display:none; font-size:12.5px; color:var(--dim); text-shadow:0 0 8px #000; transition:opacity 1.2s; pointer-events:none; }
   #gHint.seen:not(.paused) { opacity:0; }
@@ -270,7 +277,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=27';
+import { createGame } from './game.js?v=28';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
 const VER = 18;
