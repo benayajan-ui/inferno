@@ -228,7 +228,7 @@
 <div id="gBook"><div><h2>המחברת</h2><p>השורות שנאספו בדרך. לחיצה סוגרת.</p><ul id="gList"></ul></div></div>
 <div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.reload()">לשחק שוב</button><a href="./">לאתר</a></div></div>
 <div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
-  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה אל שני המעגלים הראשונים. כעשר דקות.</p>
+  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה דרך שלושת המעגלים הראשונים. כרבע שעה.</p>
   <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: צד שמאל של המסך ללכת, צד ימין להביט</p>
   <em lang="it">Lasciate ogne speranza, voi ch'intrate</em>
   <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="resume" type="button" hidden></button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
@@ -250,7 +250,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=18';
+import { createGame } from './game.js?v=20';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
 const VER = 18;
@@ -417,7 +417,7 @@ function zoneTint(p) {       // souls take the colour of the place they suffer i
   return 0;
 }
 
-const KEEP = /^((Dante|Virgil)_\w+|Charon|Beast_\w+|Poet_\d|Minos|Francesca|Paolo)$/, kept = [];
+const KEEP = /^((Dante|Virgil)_\w+|Charon|Beast_\w+|Poet_\d|Minos|Francesca|Paolo|Cerberus)$/, kept = [];
 function prepare(gltf) {
   const json = gltf.parser.json, assoc = gltf.parser.associations, root = gltf.scene;
   root.updateMatrixWorld(true);
@@ -696,7 +696,7 @@ loader.load(`inferno_web.glb?v=${VER}`, (gltf) => {
   const open = () => { load.style.opacity = 0; setTimeout(() => load.remove(), 900); };
   load.classList.add('ready');
   $('begin').addEventListener('click', () => { open(); sound.start(); game.start(); });
-  const cp = game.saved(); if (cp === 'limbo' || cp === 'lust') { $('resume').hidden = false; $('resume').textContent = cp === 'lust' ? 'להמשיך מהמעגל השני' : 'להמשיך מהמעגל הראשון';
+  const cp = game.saved(); if (cp === 'limbo' || cp === 'lust' || cp === 'gluttony') { $('resume').hidden = false; $('resume').textContent = cp === 'gluttony' ? 'להמשיך מהמעגל השלישי' : cp === 'lust' ? 'להמשיך מהמעגל השני' : 'להמשיך מהמעגל הראשון';
     $('resume').addEventListener('click', () => { open(); sound.start(); game.start(cp); }); }
   if (Q.has('fps')) window.__game = game;
   loadDetail();                                   // the game always needs the detailed statues: the ones that wake are shown close up

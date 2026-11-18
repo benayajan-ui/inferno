@@ -1,0 +1,387 @@
+{
+ "cast": {
+  "virgil": {
+   "character": "וירגיליוס",
+   "brief": "גבר בוגר, קול חם, רגוע ובטוח. מספר סיפורים, לא מטיף. קצב מתון."
+  },
+  "gate": {
+   "character": "השער",
+   "brief": "קול עמוק מאוד, כבד ואיטי, עם הד של אבן. לא אנושי לגמרי."
+  },
+  "charon": {
+   "character": "כארון",
+   "brief": "זקן, מחוספס וכועס. צועק מעל המים."
+  },
+  "minos": {
+   "character": "מינוס",
+   "brief": "קול נמוך וקשה, של שופט. חותך, בלי רגש."
+  },
+  "francesca": {
+   "character": "פרנצ'סקה",
+   "brief": "אישה צעירה, קול רך ועצוב. מדברת לאט, כמעט לוחשת."
+  },
+  "dante": {
+   "character": "דנטה",
+   "brief": "גבר בשנות השלושים, קול שקט ונחלש. שורה אחת, לפני ההתעלפות."
+  },
+  "homer": {
+   "character": "הומרוס",
+   "brief": "זקן מאוד, קול עמוק ומכובד. מדבר כמלך."
+  },
+  "horace": {
+   "character": "הורטיוס",
+   "brief": "גבר בגיל העמידה, קול יבש עם חיוך. אירוני."
+  },
+  "ovid": {
+   "character": "אובידיוס",
+   "brief": "קול קל ומתנגן, של מספר אגדות."
+  },
+  "lucan": {
+   "character": "לוקנוס",
+   "brief": "גבר צעיר, קול רציני ומתוח."
+  },
+  "soul_a": {
+   "character": "נשמה (אדיש, ליד הקיר)",
+   "brief": "גבר, קול שטוח ועייף. בלי רגש."
+  },
+  "soul_b": {
+   "character": "נשמה (רץ אחרי הדגל)",
+   "brief": "גבר, קול חלול, כמו מי שמדבר לעצמו."
+  },
+  "wait_a": {
+   "character": "נשמה שמחכה על שפת המים 1",
+   "brief": "גבר מבוגר, הקלה עייפה."
+  },
+  "wait_b": {
+   "character": "נשמה שמחכה על שפת המים 2",
+   "brief": "גבר צעיר, מפוחד ורועד."
+  },
+  "wait_c": {
+   "character": "נשמה שמחכה על שפת המים 3",
+   "brief": "אישה, קול נואש ושקט."
+  },
+  "run_a": {
+   "character": "רץ 1",
+   "brief": "גבר, חסר נשימה, ממהר. כמעט צועק."
+  },
+  "run_b": {
+   "character": "רץ 2",
+   "brief": "גבר, קצר רוח ועצבני."
+  },
+  "limbo_a": {
+   "character": "נשמה בלימבו 1",
+   "brief": "גבר זקן, קול שליו ועצוב."
+  },
+  "limbo_b": {
+   "character": "נשמה בלימבו 2",
+   "brief": "אישה, קול רך וגעגוע."
+  },
+  "queue": {
+   "character": "נשמה בתור למינוס",
+   "brief": "גבר, מתוח, לוחש."
+  }
+ },
+ "lines": {
+  "v_start": {
+   "file": "voice/v_start.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אל תפחד. אני וירגיליוס. הדרך היחידה מכאן עוברת למטה. בוא אחריי, אל השער.",
+   "recorded": true
+  },
+  "v_beasts": {
+   "file": "voice/v_beasts.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "שלוש החיות לא יתנו לך לעלות אל ההר. אל תילחם בהן. חזור אל השער.",
+   "recorded": true
+  },
+  "gate": {
+   "file": "voice/gate.mp3",
+   "cast": "gate",
+   "character": "השער",
+   "text": "הניחו כל תקווה, אתם הנכנסים.",
+   "recorded": true
+  },
+  "v_tunnel": {
+   "file": "voice/v_tunnel.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "כאן משאירים כל פחד מאחור. רד בזהירות. אני לפניך.",
+   "recorded": true
+  },
+  "v_view": {
+   "file": "voice/v_view.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "זה הגיהנום. תשעה מעגלים יורדים אל לב האדמה, ובכל אחד עונש שנולד מן החטא עצמו. הבט למטה, במעגל השני: הגופים המרחפים באוויר הם מי שנסחפו אחרי תשוקתם. עכשיו הסערה סוחפת אותם, לנצח.",
+   "recorded": false
+  },
+  "v_vest": {
+   "file": "voice/v_vest.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אלה מי שחיו בלי לבחור. השמיים דחו אותם, וגם התופת אינה רוצה בהם. הבט בהם, ועבור.",
+   "recorded": true
+  },
+  "soul1": {
+   "file": "voice/soul1.mp3",
+   "cast": "soul_a",
+   "character": "נשמה (אדיש, ליד הקיר)",
+   "text": "לא עשיתי רע. לא עשיתי טוב. לא עשיתי דבר.",
+   "recorded": true
+  },
+  "soul2": {
+   "file": "voice/soul2.mp3",
+   "cast": "soul_b",
+   "character": "נשמה (רץ אחרי הדגל)",
+   "text": "רצתי אחרי כל דגל, ואף אחד מהם לא היה שלי.",
+   "recorded": true
+  },
+  "charon": {
+   "file": "voice/charon.mp3",
+   "cast": "charon",
+   "character": "כארון",
+   "text": "אוי לכם, נשמות רשעות! ואתה, נשמה חיה, התרחק מן המתים!",
+   "recorded": true
+  },
+  "v_charon": {
+   "file": "voice/v_charon.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "כארון, אל תכעס. כך רוצים במקום שבו יכולים כל מה שרוצים.",
+   "recorded": true
+  },
+  "v_task": {
+   "file": "voice/v_task.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הוא לא יפליג בסירה ריקה. הער שלוש נשמות שכבר מחכות על שפת המים. לא את הרצים.",
+   "recorded": false
+  },
+  "s_a": {
+   "file": "voice/s_a.mp3",
+   "cast": "wait_a",
+   "character": "נשמה שמחכה על שפת המים 1",
+   "text": "סוף סוף. חיכיתי כאן כל כך הרבה זמן.",
+   "recorded": false
+  },
+  "s_b": {
+   "file": "voice/s_b.mp3",
+   "cast": "wait_b",
+   "character": "נשמה שמחכה על שפת המים 2",
+   "text": "אני מפחד מהמים, ובכל זאת אני רוצה לעבור.",
+   "recorded": false
+  },
+  "s_c": {
+   "file": "voice/s_c.mp3",
+   "cast": "wait_c",
+   "character": "נשמה שמחכה על שפת המים 3",
+   "text": "קח אותי מכאן. כל מקום עדיף על החוף הזה.",
+   "recorded": false
+  },
+  "d_a": {
+   "file": "voice/d_a.mp3",
+   "cast": "run_a",
+   "character": "רץ 1",
+   "text": "אני לא יכול לעצור. הדגל!",
+   "recorded": false
+  },
+  "d_b": {
+   "file": "voice/d_b.mp3",
+   "cast": "run_b",
+   "character": "רץ 2",
+   "text": "אל תעכב אותי. הוא בורח!",
+   "recorded": false
+  },
+  "charon_go": {
+   "file": "voice/charon_go.mp3",
+   "cast": "charon",
+   "character": "כארון",
+   "text": "הסירה מלאה. עלה, נשמה חיה, ושתוק.",
+   "recorded": false
+  },
+  "v_boat": {
+   "file": "voice/v_boat.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אל תביט במים. בצד השני מחכים מי שלא חטאו, ובכל זאת לא יראו את האור.",
+   "recorded": false
+  },
+  "v_land": {
+   "file": "voice/v_land.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "כאן יורדים. המדרגות האלה מובילות אל המעגל הראשון.",
+   "recorded": false
+  },
+  "l_in": {
+   "file": "voice/l_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "זה המעגל הראשון. אין כאן ייסורים, רק געגוע בלי תקווה. כאן גם ביתי.",
+   "recorded": false
+  },
+  "l_soul1": {
+   "file": "voice/l_soul1.mp3",
+   "cast": "limbo_a",
+   "character": "נשמה בלימבו 1",
+   "text": "לא חטאנו. רק נולדנו לפני הזמן.",
+   "recorded": false
+  },
+  "l_soul2": {
+   "file": "voice/l_soul2.mp3",
+   "cast": "limbo_b",
+   "character": "נשמה בלימבו 2",
+   "text": "אין כאן כאב. יש רק געגוע שאין לו סוף.",
+   "recorded": false
+  },
+  "l_poets": {
+   "file": "voice/l_poets.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אלה ארבעת גדולי המשוררים. הם יתעוררו רק לפי סדרם. הקשב למה שכל אחד אומר.",
+   "recorded": false
+  },
+  "p0": {
+   "file": "voice/p0.mp3",
+   "cast": "homer",
+   "character": "הומרוס",
+   "text": "אני הראשון. שרתי על מלחמה אחת, ועל דרך ארוכה הביתה.",
+   "recorded": false
+  },
+  "p1": {
+   "file": "voice/p1.mp3",
+   "cast": "horace",
+   "character": "הורטיוס",
+   "text": "אני בא אחריו. כל חיי צחקתי על חולשות בני האדם.",
+   "recorded": false
+  },
+  "p2": {
+   "file": "voice/p2.mp3",
+   "cast": "ovid",
+   "character": "אובידיוס",
+   "text": "שלישי אני. סיפרתי על גופים שהחליפו צורה.",
+   "recorded": false
+  },
+  "p3": {
+   "file": "voice/p3.mp3",
+   "cast": "lucan",
+   "character": "לוקנוס",
+   "text": "אחרון. שרתי על רומא שנלחמה בעצמה.",
+   "recorded": false
+  },
+  "l_sixth": {
+   "file": "voice/l_sixth.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הם מקבלים אותך ביניהם. אתה השישי בחבורה.",
+   "recorded": false
+  },
+  "l_back": {
+   "file": "voice/l_back.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "עכשיו נרד. המדרגות מאחורינו.",
+   "recorded": false
+  },
+  "l_down": {
+   "file": "voice/l_down.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "מכאן מתחיל הגיהנום האמיתי.",
+   "recorded": false
+  },
+  "c2_in": {
+   "file": "voice/c2_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "מינוס עומד בפתח ושופט כל נשמה. מספר הפעמים שהוא כורך את זנבו הוא מספר המעגל שאליו תרד.",
+   "recorded": false
+  },
+  "c2_soul": {
+   "file": "voice/c2_soul.mp3",
+   "cast": "queue",
+   "character": "נשמה בתור למינוס",
+   "text": "אני מחכה לשמוע לאיזה מעגל.",
+   "recorded": false
+  },
+  "minos": {
+   "file": "voice/minos.mp3",
+   "cast": "minos",
+   "character": "מינוס",
+   "text": "אתה שבא אל בית הכאב, ראה היטב לאן אתה נכנס, ובמי אתה בוטח!",
+   "recorded": false
+  },
+  "v_minos": {
+   "file": "voice/v_minos.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אל תחסום את דרכו. כך רוצים במקום שבו יכולים כל מה שרוצים.",
+   "recorded": false
+  },
+  "c2_task": {
+   "file": "voice/c2_task.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הבט אל הסערה. מצא את השניים שעפים יחד ואינם נפרדים.",
+   "recorded": false
+  },
+  "francesca": {
+   "file": "voice/francesca.mp3",
+   "cast": "francesca",
+   "character": "פרנצ'סקה",
+   "text": "האהבה הובילה אותנו אל מוות אחד.",
+   "recorded": false
+  },
+  "d_faint": {
+   "file": "voice/d_faint.mp3",
+   "cast": "dante",
+   "character": "דנטה",
+   "text": "ונפלתי, כפי שנופל גוף מת.",
+   "recorded": false
+  },
+  "c3_in": {
+   "file": "voice/c3_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "התעוררת. אנחנו במעגל השלישי. הגשם הזה אינו נפסק לעולם.",
+   "recorded": false
+  },
+  "c3_task": {
+   "file": "voice/c3_task.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "קרברוס חוסם את הדרך. אסוף חופן בוץ מן האדמה, והשלך אל לועותיו.",
+   "recorded": false
+  },
+  "c3_empty": {
+   "file": "voice/c3_empty.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "לא בידיים ריקות. חפש את הבוץ.",
+   "recorded": false
+  },
+  "c3_ok": {
+   "file": "voice/c3_ok.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הוא שותק, כמו כלב שקיבל את מנתו. עבור.",
+   "recorded": false
+  },
+  "ciacco": {
+   "file": "voice/ciacco.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אתה שמובילים אותך דרך הגיהנום הזה, זהה אותי אם תוכל.",
+   "recorded": false
+  },
+  "c3_end": {
+   "file": "voice/c3_end.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הוא לא יקום עוד, עד קול החצוצרה.",
+   "recorded": false
+  }
+ }
+}
