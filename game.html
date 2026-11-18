@@ -155,6 +155,20 @@
   #gTitle.on { opacity:1; transform:none; }
   #gTitleS { display:block; font-size:16px; letter-spacing:.14em; color:var(--gold); margin-bottom:6px; }
   #gTitleB { display:block; font-family:"Bona Nova","David",serif; font-weight:700; font-size:clamp(46px,8vw,92px); line-height:1; color:#f7e9c9; }
+  #gArrow { position:fixed; left:50%; top:50%; width:0; height:0; z-index:5; opacity:0; transition:opacity .4s; pointer-events:none; }
+  #gArrow.on { opacity:.85; }
+  #gArrow i { position:absolute; left:-9px; top:-22px; border:9px solid transparent; border-bottom:16px solid var(--gold); filter:drop-shadow(0 0 4px #000); }
+  #gArrow span { display:none; }
+  #gMenu { position:fixed; top:14px; left:16px; z-index:6; display:none; border:1px solid var(--line); background:rgba(8,5,4,.55); border-radius:999px; padding:5px 14px; font-size:13px; color:var(--dim); }
+  body.playing #gMenu { display:block; } body.playing #gHint { top:52px; } body.playing #snd { top:76px; }
+  #gPause { position:fixed; inset:0; z-index:10; display:none; place-items:center; text-align:center; background:rgba(6,4,3,.84); }
+  #gPause.on { display:grid; }
+  #gPause h2 { font-family:"Bona Nova","David",serif; font-size:44px; margin:0 0 16px; color:#f7e9c9; }
+  #gPause p { color:var(--dim); margin:18px 0 8px; font-size:14px; } #gPause p.k { font-size:12.5px; margin-top:20px; }
+  #gPause nav { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:520px; padding:0 16px; }
+  #gPause nav a, #gPause button { border:1px solid var(--line); border-radius:999px; padding:8px 18px; font-size:15px; color:var(--ink); background:transparent; text-decoration:none; }
+  #gPause button.main { background:var(--gold); color:#1a0f08; border-color:var(--gold); font-weight:700; padding:10px 28px; font-size:17px; }
+  #gPause .back { display:inline-block; margin-top:10px; color:var(--dim); font-size:13px; }
   #gFade { position:fixed; inset:0; z-index:4; background:#000; opacity:0; pointer-events:none; }
   #gTask { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5; display:none; padding:6px 18px; border:1px solid var(--line); border-radius:999px; background:rgba(8,5,4,.55); color:var(--gold); font-size:15px; white-space:nowrap; }
   #gTask.on { display:block; }
@@ -163,7 +177,7 @@
   #gHint.seen:not(.paused) { opacity:0; }
   #gHint.paused b { display:inline; } #gHint b { display:none; color:var(--gold); font-weight:700; }
   #snd { display:block !important; top:52px; bottom:auto; left:16px; } body:not(.playing) #snd { display:none !important; }
-  #gBook { position:fixed; inset:0; z-index:7; display:none; place-items:center; background:rgba(0,0,0,.72); padding:20px; }
+  #gBook { position:fixed; inset:0; z-index:11; display:none; place-items:center; background:rgba(0,0,0,.72); padding:20px; }
   #gBook.on { display:grid; }
   #gBook > div { width:min(520px,94vw); max-height:86vh; overflow:auto; background:#efe2c4; color:#2a1a10; border-radius:4px; padding:26px 28px; box-shadow:0 20px 60px #000; }
   #gBook h2 { margin:0 0 4px; font-family:"Bona Nova","David",serif; font-size:30px; } #gBook p { margin:0 0 14px; font-size:13px; color:#6b5540; }
@@ -226,7 +240,13 @@
 <button id="gNote" type="button">המחברת 0/5</button>
 <div id="gHint">W A S D או גלגלת ללכת · עכבר להביט · Shift לרוץ · N למחברת <b>· לחיצה על המסך ממשיכה</b></div>
 <div id="gBook"><div><h2>המחברת</h2><p>השורות שנאספו בדרך. לחיצה סוגרת.</p><ul id="gList"></ul></div></div>
-<div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.reload()">לשחק שוב</button><a href="./">לאתר</a></div></div>
+<div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.href='game.html'">לשחק שוב</button><a href="#" id="gEndBook">המחברת</a><a href="./">לאתר</a></div></div>
+<div id="gArrow" aria-hidden="true"><i></i><span>וירגיליוס</span></div>
+<button id="gMenu" type="button">תפריט</button>
+<div id="gPause"><div><h2>הפסקה</h2><button type="button" id="gGo" class="main">להמשיך</button>
+  <p>לקפוץ לשלב:</p>
+  <nav><a href="game.html">היער והשער</a><a href="game.html?cp=limbo">לימבו</a><a href="game.html?cp=lust">התאוותנים</a><a href="game.html?cp=gluttony">הגרגרנים</a><a href="game.html?cp=avarice">הקמצנים</a><a href="game.html?cp=styx">הסטיקס ודיס</a></nav>
+  <p class="k">W A S D או גלגלת ללכת · עכבר להביט · Shift לרוץ · N למחברת · P להפסקה</p><a class="back" href="./">חזרה לאתר</a></div></div>
 <div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
   <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה דרך חמשת המעגלים הראשונים, עד שער העיר דיס. כעשרים דקות.</p>
   <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: צד שמאל של המסך ללכת, צד ימין להביט</p>
@@ -250,7 +270,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=24';
+import { createGame } from './game.js?v=26';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
 const VER = 18;
@@ -695,7 +715,9 @@ loader.load(`inferno_web.glb?v=${VER}`, (gltf) => {
   renderer.setAnimationLoop(tick);
   const open = () => { load.style.opacity = 0; setTimeout(() => load.remove(), 900); };
   load.classList.add('ready');
-  $('begin').addEventListener('click', () => { open(); sound.start(); game.start(); });
+  const jump = Q.get('cp');                                  // the pause menu reloads the page at a chosen circle
+  if (jump) $('begin').textContent = 'להתחיל מכאן';
+  $('begin').addEventListener('click', () => { open(); sound.start(); game.start(jump || undefined); });
   const cp = game.saved(), CPN = { limbo: 'הראשון', lust: 'השני', gluttony: 'השלישי', avarice: 'הרביעי', styx: 'החמישי' }; if (CPN[cp]) { $('resume').hidden = false; $('resume').textContent = 'להמשיך מהמעגל ' + CPN[cp];
     $('resume').addEventListener('click', () => { open(); sound.start(); game.start(cp); }); }
   if (Q.has('fps')) window.__game = game;

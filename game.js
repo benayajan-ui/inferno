@@ -175,6 +175,56 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       const R = o.userData.solidR || 0.48, dx = pos.x - v.x, dz = pos.z - v.z, d = Math.hypot(dx, dz); if (d < R && d > 1e-4) { pos.x += dx / d * (R - d); pos.z += dz / d * (R - d); } }
   }
   const solids = [];
+  // --- small sounds, synthesised through the page's own audio (nothing is played if the sound is off) ---
+  let stepAcc = 0;
+  function noise(dur, freq, gain, q = 1) {
+    const c = sound.ctx; if (!c || !sound.on || c.state !== 'running') return;
+    const n = Math.floor(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); src.buffer = b; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = gain;
+    src.connect(f).connect(g).connect(c.destination); src.start();
+  }
+  function tone(freq, dur, gain, delay = 0) {
+    const c = sound.ctx; if (!c || !sound.on || c.state !== 'running') return;
+    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + delay; o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  const footstep = () => noise(0.09, 320 + Math.random() * 260, 0.11, 0.8);
+  const chime = () => { tone(523, 1.1, 0.035); tone(784, 1.3, 0.03, 0.12); tone(1046, 1.6, 0.02, 0.26); noise(0.5, 2400, 0.02, 3); };   // stone waking
+  const knock = () => { noise(0.22, 140, 0.22, 1.2); tone(92, 0.5, 0.05); };                                                  // stone staying stone
+
+  // --- marble dust falls off a statue as it wakes ---
+  const dusts = [];
+  function dust(o) {
+    const n = 46, a = new Float32Array(n * 3), w = o.getWorldPosition(new THREE.Vector3());
+    for (let i = 0; i < n; i++) { const t = Math.random() * Math.PI * 2, r = 0.22 + Math.random() * 0.3; a[i * 3] = w.x + Math.cos(t) * r; a[i * 3 + 1] = w.y + 0.5 + Math.random() * 1.4; a[i * 3 + 2] = w.z + Math.sin(t) * r; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(a, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xf2e6d0, size: 0.045, transparent: true, opacity: 0.9, depthWrite: false }));
+    pts.frustumCulled = false; scene.add(pts); dusts.push({ pts, t: 0 });
+  }
+  function dusting(dt) {
+    for (let i = dusts.length - 1; i >= 0; i--) { const d = dusts[i]; d.t += dt; const a = d.pts.geometry.attributes.position;
+      for (let k = 0; k < a.count; k++) a.setY(k, a.getY(k) - dt * (0.35 + (k % 5) * 0.09)); a.needsUpdate = true;
+      d.pts.material.opacity = Math.max(0, 0.9 * (1 - d.t / 2.2));
+      if (d.t > 2.2) { scene.remove(d.pts); d.pts.geometry.dispose(); dusts.splice(i, 1); } }
+  }
+
+  // --- an arrow at the edge of the view points to Virgil when he is out of sight or far ahead ---
+  function compass() {
+    const el = $('gArrow'); if (!guide || guideRide || game.ended || phase === 'sail' || phase === 'styx') { el.classList.remove('on'); return; }
+    guide.getWorldPosition(v); const dx = v.x - pos.x, dz = v.z - pos.z, dist = Math.hypot(dx, dz);
+    const f = -Math.sin(yaw) * dx - Math.cos(yaw) * dz, r = Math.cos(yaw) * dx - Math.sin(yaw) * dz, rel = Math.atan2(r, f);
+    const show = dist > 2.5 && (Math.abs(rel) > 0.55 || dist > 14); el.classList.toggle('on', show); if (!show) return;
+    const R = Math.min(innerWidth, innerHeight) * 0.36; el.style.transform = `translate(${Math.sin(rel) * R}px, ${-Math.cos(rel) * R}px) rotate(${rel}rad)`;
+  }
+
+  // --- pause: the game stops, and the menu lets you jump to any circle ---
+  function setPaused(on) {
+    if (!game.active || game.ended) return; game.paused = on; $('gPause').classList.toggle('on', on);
+    if (on) { keys.clear(); if (document.pointerLockElement) document.exitPointerLock(); } else if (game.lock && !matchMedia('(pointer: coarse)').matches) game.lock();
+  }
+
   function walk(dt) {
     let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y;
     let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
@@ -192,7 +242,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
         const n = hit.face.normal; let nx = n.x, nz = n.z; const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
         const d = dx * nx + dz * nz; tryMove(dx - d * nx, dz - d * nz);
       }
-      aroundStatues(); keepClear(); moved += m > 0.05 ? speed : Math.abs(roll); bob += speed * 2.1;
+      aroundStatues(); keepClear(); const went = m > 0.05 ? speed : Math.abs(roll); moved += went; bob += speed * 2.1;
+      if ((stepAcc += went) > 0.78) { stepAcc = 0; footstep(); }
     }
     const gy = groundAt(pos.x, pos.y, pos.z); if (gy !== null) pos.y += (gy - pos.y) * Math.min(1, dt * 14);
     camera.position.set(pos.x, pos.y + EYE - crouch + Math.sin(bob) * 0.028, pos.z);
@@ -262,7 +313,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const WARM = new THREE.Color(1.0, 0.72, 0.56), alive = [], ZERO = new THREE.Matrix4().set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   function liven(o, turn) {
     o.material = o.material.clone();
-    const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l);
+    const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l); chime(); dust(o);
     alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l }); if (o.userData.solidR && !solids.includes(o)) solids.push(o);
     return o;
   }
@@ -319,7 +370,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     { at: g(65.5, 0, stairY(65.5)), r: 2.6, run: () => say('v_tunnel') },
     { at: g(55.4, 0, ZF), r: 2.6, run: () => { title('המבוא', 'חוף האכרון'); say('v_view', null, true); } },                 // the pit opens in front of you
     { at: p(53.3, 147, ZF), r: 2.2, run: () => { say('v_vest', null, true); note(2); } },
-    { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
+    { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); hud('פסלים מתעוררים כשמתקרבים אליהם'); setTimeout(() => { if ($('gTask').textContent.startsWith('פסלים')) hud(''); }, 5200); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
     { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) liven(c, false);
         say('charon', () => note(4), true); say('v_charon', null, true); say('v_task', () => { questOn = true; task(); }, true); } },
@@ -519,7 +570,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const stair4 = Array.from({ length: 7 }, (_, i) => p(40.05, 95.6 - i * 1.0, L3 - 0.2 + (L4 - L3) * i / 6));   // top at 96 degrees, foot at 89
   ROUTES.c3out = [...arc(40.95, 105, 97.5, L3), p(40.5, 96.4, L3), ...stair4, p(39.6, 88.6, L4)];
   ROUTES.toPlutus = [...arc(38.7, 88, 67, L4)];
-  ROUTES.c4 = [...arc(38.3, 64, 46, L4)];
+  ROUTES.c4 = [...arc(38.3, 64, 38, L4)];
   function setupAvarice() {
     plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); }
     game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], 0.9, true);
@@ -533,7 +584,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
         if (changed) c.instanceMatrix.needsUpdate = true; }); }
     for (const e of LOD) { if (e.key !== 'Fig_Pushing_nb') continue; e.low.updateMatrixWorld(true);
       for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue; q.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
-        const a = (Math.atan2(-q.z, q.x) * 180 / Math.PI + 360) % 360; if (a > 40 && a < 70 && Math.abs(q.y - L4) < 1.5) pushers.push(q.clone()); } }
+        const a = (Math.atan2(-q.z, q.x) * 180 / Math.PI + 360) % 360; if (a > 32 && a < 59.5 && Math.abs(q.y - L4) < 1.5) pushers.push(q.clone()); } }
   }
   function leaveGluttony() { route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
   function enterAvarice() {
@@ -548,8 +599,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 - 0.6 * k); plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
     for (let i = dull.length - 1; i >= 0; i--) { const d = dull[i]; d.t += dt; d.l.intensity = 3 * Math.max(0, 1 - d.t / 1.6) * (0.6 + 0.4 * Math.sin(d.t * 30)); if (d.t > 1.6) { scene.remove(d.l); dull.splice(i, 1); } }
     if (!c4On) return;
-    for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 1.7 || tried.some((t) => t.distanceTo(q) < 2.5)) continue;
-      tried.push(q); const l = new THREE.PointLight(0x9aa2b0, 0, 5, 1.8); l.position.set(q.x, q.y + 1.8, q.z); scene.add(l); dull.push({ l, t: 0 });   // a cold flicker, and nothing
+    for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 2.2 || tried.some((t) => t.distanceTo(q) < 2.0)) continue;
+      tried.push(q); knock(); const l = new THREE.PointLight(0x9aa2b0, 0, 5, 1.8); l.position.set(q.x, q.y + 1.8, q.z); scene.add(l); dull.push({ l, t: 0 });   // a cold flicker, and nothing
       hud(`נסה להעיר את דוחפי הסלעים · ${tried.length}/3`);
       if (tried.length === 3) { c4On = false; hud(''); say('c4_none', () => note(10), true); say('c4_out', leaveAvarice, true); } break; }
   }
@@ -558,7 +609,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   //     Medusa (turn your eyes away), and the messenger who opens the gate with a touch (Inferno VIII-IX) ---
   const L5 = S * -75.2, B2R = 35.6, B2_YAW = 0.1684, GATE_A = 55, DIS = p(33.9, GATE_A, L5 + 4);
   const stair5 = Array.from({ length: 7 }, (_, i) => p(36.52, 84.4 + i * 1.0, L4 - 0.2 + (L5 - L4) * i / 6));    // top at 84 degrees, foot at 91
-  ROUTES.c4out = [...arc(38.3, 46, 82, L4), p(37.3, 83.8, L4), ...stair5];
+  ROUTES.c4out = [...arc(38.3, 38, 82, L4), p(37.3, 83.8, L4), ...stair5];
   let b2 = null, b2A = 92, b2Y = 0, sail2 = -1, disT = -1, medT = -1, angel = null, angelT = -1, doorT = -1, stoned = -1, glow = null, doors = [], argentiSaid = false;
   function placeB2(a, out = 0) { b2A = a; const q = p(B2R + out, a, 0); b2.position.x = q.x; b2.position.z = q.z; b2.rotation.set(0, rad(a) - Math.PI / 2 - B2_YAW, 0); }
   const seat2 = (u, out) => { const a = rad(b2A); return out.set(b2.position.x + Math.sin(a) * u, b2Y - 0.12, b2.position.z + Math.cos(a) * u); };
@@ -599,12 +650,16 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('dis_open', () => end('סוף הפרק הראשון'), true); } }
   }
 
-  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
+  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} דקות`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
   function bind() {
     const el = renderer.domElement;
-    addEventListener('keydown', (e) => { keys.add(e.code); if (e.code === 'KeyN' || e.code === 'Tab') { e.preventDefault(); $('gBook').classList.toggle('on'); } });
+    addEventListener('keydown', (e) => { if (!game.paused) keys.add(e.code); if (e.code === 'KeyN' || e.code === 'Tab') { e.preventDefault(); $('gBook').classList.toggle('on'); }
+      if (e.code === 'KeyP') setPaused(!game.paused); });
+    let hadLock = false;
+    $('gMenu').addEventListener('click', () => setPaused(true)); $('gGo').addEventListener('click', () => setPaused(false));
+    $('gEndBook').addEventListener('click', () => $('gBook').classList.add('on'));
     addEventListener('keyup', (e) => keys.delete(e.code));
     addEventListener('blur', () => keys.clear());
     const lock = () => { try { const r = el.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} };
@@ -613,7 +668,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     let drag = false;
     el.addEventListener('mousedown', () => { drag = true; }); addEventListener('mouseup', () => { drag = false; });
     document.addEventListener('mousemove', (e) => { if (!drag || document.pointerLockElement === el) return; yaw -= e.movementX * 0.004; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.004)); });
-    document.addEventListener('pointerlockchange', () => $('gHint').classList.toggle('paused', game.active && !document.pointerLockElement));
+    document.addEventListener('pointerlockchange', () => { const on = !!document.pointerLockElement; if (hadLock && !on && !game.paused) setPaused(true); hadLock = on; });   // Esc frees the mouse and pauses
     document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== el) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.0022)); });
     // touch: left half of the screen is a walking stick, right half turns the head
     el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) touches.set(t.identifier, { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, left: t.clientX < innerWidth / 2 }); }, { passive: true });
@@ -631,6 +686,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
 
   // where a saved game picks up: how many notebook lines you already hold, where you stand, what begins
   const CPS = { limbo: [5, p(50.5, 89.3, L1), enterLimbo], lust: [6, p(46.9, 90.0, L2), enterLust], gluttony: [8, p(42.2, 91.2, L3), () => enterGluttony(false)], avarice: [9, p(39.9, 89.2, L4), enterAvarice], styx: [11, p(36.5, 90.3, L5), enterStyx] };
+  let t0 = 0;
   game.saved = () => { try { return localStorage.getItem('inferno_cp'); } catch (e) { return null; } };
   game.start = (cp) => {
     buildCollider(); setupBoat();
@@ -641,7 +697,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
     yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
     document.body.classList.add('playing');
-    game.active = true; note(0);
+    game.active = true; t0 = performance.now(); note(0);
     if (CPS[cp]) {                          // pick up where the last visit stopped
       for (const t of TRIG) t.done = true; for (let i = 1; i < CPS[cp][0]; i++) note(i);
       if (boat) placeBoat(LAND);
@@ -653,7 +709,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
+  game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
   game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
