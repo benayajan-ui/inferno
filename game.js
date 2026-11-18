@@ -12,73 +12,86 @@ const stairY = (r) => (r <= 55.2 ? ZF : r >= 71 ? 0 : ZF + (r - 55.2) * (-ZF / (
 
 // what is said, by whom; the files are voice/<id>.mp3
 const LINES = {
-  v_start:  ['וירגיליוס', 'אל תפחד. אני וירגיליוס. הדרך היחידה מכאן עוברת למטה. בוא אחריי, אל השער.'],
-  v_beasts: ['וירגיליוס', 'שלוש החיות לא יתנו לך לעלות אל ההר. אל תילחם בהן. חזור אל השער.'],
-  gate:     ['השער', 'הניחו כל תקווה, אתם הנכנסים.'],
-  v_tunnel: ['וירגיליוס', 'כאן משאירים כל פחד מאחור. רד בזהירות. אני לפניך.'],
-  v_view:   ['וירגיליוס', 'זה הגיהנום. תשעה מעגלים יורדים אל לב האדמה, ובכל אחד עונש שנולד מן החטא עצמו. הבט למטה, במעגל השני: הגופים המרחפים באוויר הם מי שנסחפו אחרי תשוקתם. עכשיו הסערה סוחפת אותם, לנצח.'],
-  v_vest:   ['וירגיליוס', 'אלה מי שחיו בלי לבחור. השמיים דחו אותם, וגם התופת אינה רוצה בהם. הבט בהם, ועבור.'],
-  soul1:    ['נשמה', 'לא עשיתי רע. לא עשיתי טוב. לא עשיתי דבר.'],
-  soul2:    ['נשמה', 'רצתי אחרי כל דגל, ואף אחד מהם לא היה שלי.'],
-  charon:   ['כארון', 'אוי לכם, נשמות רשעות! ואתה, נשמה חיה, התרחק מן המתים!'],
-  v_charon: ['וירגיליוס', 'כארון, אל תכעס. כך רוצים במקום שבו יכולים כל מה שרוצים.'],
-  v_task:   ['וירגיליוס', 'הוא לא יפליג בסירה ריקה. הער שלוש נשמות שכבר מחכות על שפת המים. לא את הרצים.'],
-  s_a:      ['נשמה', 'סוף סוף. חיכיתי כאן כל כך הרבה זמן.'],
-  s_b:      ['נשמה', 'אני מפחד מהמים, ובכל זאת אני רוצה לעבור.'],
-  s_c:      ['נשמה', 'קח אותי מכאן. כל מקום עדיף על החוף הזה.'],
-  d_a:      ['נשמה', 'אני לא יכול לעצור. הדגל!'],
-  d_b:      ['נשמה', 'אל תעכב אותי. הוא בורח!'],
-  charon_go:['כארון', 'הסירה מלאה. עלה, נשמה חיה, ושתוק.'],
-  v_boat:   ['וירגיליוס', 'אל תביט במים. בצד השני מחכים מי שלא חטאו, ובכל זאת לא יראו את האור.'],
-  v_land:   ['וירגיליוס', 'כאן יורדים. המדרגות האלה מובילות אל המעגל הראשון.'],
-  // --- the first circle: Limbo ---
-  l_in:     ['וירגיליוס', 'זה המעגל הראשון. אין כאן ייסורים, רק געגוע בלי תקווה. כאן גם ביתי.'],
-  l_soul1:  ['נשמה', 'לא חטאנו. רק נולדנו לפני הזמן.'],
-  l_soul2:  ['נשמה', 'אין כאן כאב. יש רק געגוע שאין לו סוף.'],
-  l_poets:  ['וירגיליוס', 'אלה ארבעת גדולי המשוררים. הם יתעוררו רק לפי סדרם. הקשב למה שכל אחד אומר.'],
-  p0:       ['הומרוס', 'אני הראשון. שרתי על מלחמה אחת, ועל דרך ארוכה הביתה.'],
-  p1:       ['הורטיוס', 'אני בא אחריו. כל חיי צחקתי על חולשות בני האדם.'],
-  p2:       ['אובידיוס', 'שלישי אני. סיפרתי על גופים שהחליפו צורה.'],
-  p3:       ['לוקנוס', 'אחרון. שרתי על רומא שנלחמה בעצמה.'],
-  l_sixth:  ['וירגיליוס', 'הם מקבלים אותך ביניהם. אתה השישי בחבורה.'],
-  l_back:   ['וירגיליוס', 'עכשיו נרד. המדרגות מאחורינו.'],
-  l_down:   ['וירגיליוס', 'מכאן מתחיל הגיהנום האמיתי.'],
-  // --- the second circle: the lustful ---
-  c2_in:    ['וירגיליוס', 'מינוס עומד בפתח ושופט כל נשמה. מספר הפעמים שהוא כורך את זנבו הוא מספר המעגל שאליו תרד.'],
-  c2_soul:  ['נשמה', 'אני מחכה לשמוע לאיזה מעגל.'],
-  minos:    ['מינוס', 'אתה שבא אל בית הכאב, ראה היטב לאן אתה נכנס, ובמי אתה בוטח!'],
-  v_minos:  ['וירגיליוס', 'אל תחסום את דרכו. כך רוצים במקום שבו יכולים כל מה שרוצים.'],
-  c2_task:  ['וירגיליוס', 'הבט אל הסערה. מצא את השניים שעפים יחד ואינם נפרדים.'],
-  francesca:['פרנצ\'סקה', 'האהבה הובילה אותנו אל מוות אחד.'],
-  d_faint:  ['דנטה', 'ונפלתי, כפי שנופל גוף מת.'],
-  // --- the third circle: the gluttons ---
-  c3_in:    ['וירגיליוס', 'התעוררת. אנחנו במעגל השלישי. הגשם הזה אינו נפסק לעולם.'],
-  c3_task:  ['וירגיליוס', 'קרברוס חוסם את הדרך. אסוף חופן בוץ מן האדמה, והשלך אל לועותיו.'],
-  c3_empty: ['וירגיליוס', 'לא בידיים ריקות. חפש את הבוץ.'],
-  c3_ok:    ['וירגיליוס', 'הוא שותק, כמו כלב שקיבל את מנתו. עבור.'],
-  ciacco:   ['צ\'אקו', 'אתה שמובילים אותך דרך הגיהנום הזה, זהה אותי אם תוכל.'],
-  c3_end:   ['וירגיליוס', 'הוא לא יקום עוד, עד קול החצוצרה.'],
-  c3_out:   ['וירגיליוס', 'בוא. המדרגות הבאות מאחורינו, ליד קרברוס.'],
-  // --- the fourth circle: the hoarders and the wasters ---
-  c4_in:    ['וירגיליוס', 'כאן מי שאגרו ומי שפיזרו. שני חטאים הפוכים, ועונש אחד.'],
-  plutus:   ['פלוטוס', 'פאפה סאטאן, פאפה סאטאן, אלפה!'],
-  v_plutus: ['וירגיליוס', 'שתוק, זאב ארור. אכול את עצמך בזעמך.'],
-  c4_task:  ['וירגיליוס', 'הם מגלגלים סלעים זה מול זה, לנצח. נסה להעיר אחד מהם. כל אחד.'],
-  c4_none:  ['וירגיליוס', 'אי אפשר לזהות אף אחד מהם. חיים בלי הבחנה מחקו את פניהם.'],
-  c4_out:   ['וירגיליוס', 'נחזור. המדרגות יורדות מכאן אל הביצה.'],
-  // --- the fifth circle: the Styx and the gate of Dis ---
-  phlegyas: ['פלגיאס', 'הגעת סוף סוף, נשמה ארורה!'],
-  v_phleg:  ['וירגיליוס', 'פלגיאס, הפעם אתה צועק לשווא. נהיה שלך רק עד שנחצה את הביצה.'],
-  argenti:  ['פיליפו ארג\'נטי', 'מי אתה, שבא לפני זמנך?'],
-  v_arg:    ['וירגיליוס', 'הרחק מכאן, אל שאר הכלבים!'],
-  dis_in:   ['וירגיליוס', 'זו העיר דיס. מעבר לחומה הזאת מתחילה התופת התחתונה.'],
-  demons:   ['השדים', 'מי זה, שבלי מוות הולך בממלכת המתים?'],
-  furies:   ['הפוריות', 'תבוא מדוזה, ונהפוך אותו לאבן!'],
-  medusa:   ['וירגיליוס', 'הסתובב! אל תביט אל המגדל! מי שרואה אותה לא שב עוד למעלה.'],
-  stone:    ['וירגיליוס', 'אמרתי לך להסתובב. שוב: הפנה את מבטך!'],
-  angel_in: ['וירגיליוס', 'עכשיו הבט. מישהו בא על פני המים.'],
-  angel:    ['השליח', 'מדוע אתם מתנגדים לרצון שאי אפשר לעצור?'],
-  dis_open: ['וירגיליוס', 'השער פתוח. בוא.'],
+  // --- 1. the wood and the gate ---
+  v_start:  ['וירגיליוס', 'דנטה! הנה אתה. קוראים לי וירגיליוס. גם אני משורר. ראיתי שאיבדת את הדרך. בוא איתי.'],
+  v_beasts: ['וירגיליוס', 'חזור אליי, דנטה! החיות חוסמות את הדרך למעלה. השביל מכאן מוביל אל השער.'],
+  v_gate:   ['וירגיליוס', 'זה שער הגיהנום. המתים שעוברים בו נשארים שם. אתה נכנס בעודך בחיים, ברשות שניתנה לנו מלמעלה.'],
+  d_gate:   ['דנטה', 'אנחנו נכנסים לגיהנום כדי לצאת מהיער?'],
+  v_gate2:  ['וירגיליוס', 'כן. נרד עד התחתית. משם אוכל להראות לך את הדרך החוצה. הישאר קרוב אליי.'],
+  // --- 2. the view over the whole pit, and the vestibule ---
+  m1:       ['וירגיליוס', 'עצור כאן רגע, דנטה. הבט עד למטה. כל התהום שאתה רואה היא הגיהנום. הוא בנוי כמו משפך בתוך האדמה, רחב כאן למעלה, והולך ונעשה צר ככל שיורדים. בתחתיתו, עמוק במרכז האדמה, יש אגם קפוא.'],
+  m2:       ['וירגיליוס', 'רואה את המדרגות הענקיות לאורך הדפנות? אלה תשעת המעגלים. לכל נשמה יש מקום לפי המעשים שלה בחיים. ככל שיורדים, מגיעים למעשים חמורים יותר ולעונשים קשים יותר.'],
+  m3:       ['וירגיליוס', 'רואה את הדמויות שהרוח מעיפה שם, מתחתינו? בחייהן הן נתנו לתשוקה לסחוף אותן. עכשיו הרוח סוחפת אותן בלי סוף. כשתראה איך נשמה נענשת, לפעמים תוכל לנחש למה היא כאן.'],
+  m4:       ['וירגיליוס', 'ואנחנו מתחילים שם, ליד הסירה. הנהר הזה נקרא אכרון. על הגדה הזאת אנחנו עוד במבואה. המעגל הראשון מתחיל מעבר למים.'],
+  v_vest:   ['וירגיליוס', 'אתה רואה את הדמויות שעומדות כאן כמו פסלים? אלה נשמות של אנשים שמתו. התקרב לאחת מהן. לפעמים די שתעמוד לידה כדי שהיא תתעורר ותספר לך למה הגיעה לכאן.'],
+  soul1:    ['נשמה', 'כל החיים עמדתי בצד. גם כשיכולתי לעזור, לא עשיתי דבר. עכשיו אני תקוע כאן, מחוץ למעגלים.'],
+  soul2:    ['נשמה', 'בחיים לא בחרתי ללכת אחרי שום דבר. עכשיו אני רודף אחרי הדגל הזה יום ולילה. אפילו לעצור אסור לי.'],
+  v_river:  ['וירגיליוס', 'בוא נרד אל הנהר. הסירה מחכה.'],
+  // --- 3. the Acheron and Charon's boat ---
+  charon:   ['כארון', 'אני כארון, הספן של האכרון. אני מעביר מתים. אתה עדיין נושם. התרחק מהסירה שלי!'],
+  v_charon: ['וירגיליוס', 'כארון, קיבלנו רשות לעבור. גם הוא בא איתי.'],
+  charon_task: ['כארון', 'טוב. הסירה יוצאת כששלוש הנשמות שמחכות על החוף יעלו. לך תעיר אותן.'],
+  v_task:   ['וירגיליוס', 'חפש את השלוש שעומדות ממש ליד המים. אלה שרצות אחרי הדגל שייכות למבואה.'],
+  s_a:      ['נשמה', 'כארון קורא לנו? אני בא.'],
+  s_b:      ['נשמה', 'אני מפחדת מהמים. טוב, תראה לי איפה עולים.'],
+  s_c:      ['נשמה', 'הנה הסירה. חשבתי שלעולם לא אצא מהחוף הזה.'],
+  d_a:      ['נשמה', 'אל תעצור אותי! הדגל!'],
+  d_b:      ['נשמה', 'אין לי זמן. אני רץ אחרי הדגל!'],
+  charon_go:['כארון', 'שלוש. עכשיו גם אתה, דנטה. עלה לסירה.'],
+  v_boat:   ['וירגיליוס', 'עוד רגע נגיע לגדה השנייה. רואה את המדרגות? הן יורדות אל לימבו, המעגל הראשון.'],
+  // --- 4. the first circle: Limbo ---
+  l_in:     ['וירגיליוס', 'זה לימבו. יש כאן אנשים שחיו לפני שהנצרות באה לעולם. גם אני אחד מהם. איש אינו מכאיב לנו כאן. העונש שלנו הוא להתגעגע לגן העדן ולדעת שלעולם לא נגיע אליו.'],
+  l_soul1:  ['נשמה', 'לפעמים אני עוד מוצא את עצמי מרים את הראש, כאילו מישהו עומד לקרוא לי למעלה.'],
+  l_poets:  ['וירגיליוס', 'ארבעת אלה היו משוררים מפורסמים עוד לפני שנולדת. בוא נפגוש אותם לפי הסדר. התחל בהומרוס.'],
+  l_w0:     ['וירגיליוס', 'קודם הומרוס, דנטה.'],
+  l_w1:     ['וירגיליוס', 'עכשיו אנחנו מחפשים את הורטיוס.'],
+  l_w2:     ['וירגיליוס', 'עכשיו אנחנו מחפשים את אובידיוס.'],
+  l_w3:     ['וירגיליוס', 'נשאר לנו לוקנוס.'],
+  p0:       ['הומרוס', 'אני הומרוס. אולי שמעת על מלחמת טרויה. אני סיפרתי עליה, ועל הלוחם שלקח לו שנים למצוא את הדרך הביתה. עכשיו גש להורטיוס.'],
+  p1:       ['הורטיוס', 'אני הורטיוס. כתבתי שירים על השטויות שבני אדם עושים, במיוחד כשהם בטוחים שהם חכמים. אובידיוס מחכה לך.'],
+  p2:       ['אובידיוס', 'אני אובידיוס. בסיפורים שלי אנשים הופכים לעצים, לציפורים ולכוכבים. נשאר לך לפגוש את לוקנוס.'],
+  p3:       ['לוקנוס', 'אני לוקנוס. כתבתי על המלחמה שבה רומאים נלחמו ברומאים. וירגיליוס, שמעתי שגם האורח שלך כותב שירה. דנטה, בוא עמוד איתנו.'],
+  l_sixth:  ['וירגיליוס', 'ארבעתם, אני, ועכשיו גם אתה. הם קיבלו אותך כמשורר השישי בחבורה. בוא, המדרגות למעגל הבא מאחורינו.'],
+  // --- 5. the second circle: the storm ---
+  c2_in:    ['וירגיליוס', 'זה מינוס. כל נשמה שמגיעה אליו מספרת מה עשתה בחייה. תסתכל על הזנב שלו. אם הוא כורך אותו פעמיים, היא יורדת למעגל השני. אם הוא כורך אותו שלוש פעמים, היא יורדת לשלישי.'],
+  minos:    ['מינוס', 'הבא בתור! רגע. אתה חי. מי נתן לך להיכנס?'],
+  v_minos:  ['וירגיליוס', 'מי שנתן לנו רשות לחצות את הנהר. פנה לנו דרך, מינוס.'],
+  c2_task:  ['וירגיליוס', 'זאת הסערה שראית מלמעלה. הרם את הראש. בין כל הנשמות יש שתיים שעפות יחד. חכה שיתקרבו וקרא להן.'],
+  d_call:   ['דנטה', 'אתם שם, שניכם! תוכלו לדבר איתי?'],
+  francesca:['פרנצ\'סקה', 'אני פרנצ\'סקה. זה פאולו. הייתי נשואה לאחיו. יום אחד קראנו יחד סיפור על שני אוהבים. כשהגענו לנשיקה שלהם, פאולו נישק אותי. בעלי גילה והרג את שנינו. מאז הרוח נושאת אותנו יחד.'],
+  d_faint:  ['דנטה', 'פאולו… למה אתה בוכה? וירגיליוס, תתפוס אותי. אני עומד ליפול.'],
+  // --- 6. the third circle: the rain and the mud ---
+  c3_in:    ['וירגיליוס', 'התעלפת. נשאתי אותך למעגל השלישי. הנשמות שאתה רואה בבוץ חיו בשביל אוכל ושתייה. עכשיו הן שוכבות בגשם קר שיורד בלי הפסקה.'],
+  c3_task:  ['וירגיליוס', 'הכלב שחוסם את המעבר הוא קרברוס. שלושה ראשים, ושלושתם תמיד רעבים. קח חופן בוץ מאחת הערמות. הוא ינסה לבלוע כל מה שתזרוק לו.'],
+  c3_empty: ['וירגיליוס', 'עוד לא אספת בוץ. חזור לערמה הקרובה וקח חופן.'],
+  c3_ok:    ['וירגיליוס', 'הראש שלו למטה. עבור עכשיו.'],
+  ciacco:   ['צ\'אקו', 'קראו לי צ\'אקו, החזיר. תמיד רציתי עוד משהו לאכול. עכשיו בכל פעם שאני פותח את הפה, נכנס לי בוץ.'],
+  v_ciacco: ['וירגיליוס', 'מכאן, דנטה. המדרגות ליד קרברוס.'],
+  // --- 7. the fourth circle: the pushers ---
+  plutus:   ['פלוטוס', 'הזהב שלי! מי נתן לכם לעבור?'],
+  v_plutus: ['וירגיליוס', 'זה פלוטוס. הוא רק צועק. המשך אחריי, דנטה.'],
+  c4_in:    ['וירגיליוס', 'אלה הקמצנים ואלה הבזבזנים. הראשונים שמרו כל מטבע לעצמם. האחרים פיזרו כל מה שהיה להם. תראה מה קורה כשהם נפגשים. הסלעים מתנגשים, וכולם מסתובבים ודוחפים בחזרה.'],
+  d_c4:     ['דנטה', 'אני רואה אותם זזים, אבל אני לא מצליח לראות פנים. אולי אחד מהם יענה לי.'],
+  d_try:    ['דנטה', 'אתה שומע אותי? איך קוראים לך?'],
+  c4_none:  ['וירגיליוס', 'גם אם הכרת מישהו מהם, לא תזהה אותו. בחייהם כל מה שעניין אותם היה הכסף. עכשיו קשה להבדיל ביניהם, והם חוזרים על אותה פעולה לנצח.'],
+  c4_out:   ['וירגיליוס', 'בוא אליי. מכאן יורדים לביצה.'],
+  // --- 8. the Styx and the gate of Dis ---
+  c5_in:    ['וירגיליוס', 'זאת ביצת הסטיקס, המעגל החמישי. בבוץ נאבקים האנשים שנתנו לכעס לשלוט בהם בחייהם. גם עכשיו הם מכים זה את זה.'],
+  phlegyas: ['פלגיאס', 'עוד אחד לביצה? תעלה!'],
+  v_phleg:  ['וירגיליוס', 'אל העיר דיס, פלגיאס. אנחנו רק חוצים.'],
+  argenti:  ['ארג\'נטי', 'היי, אתה! אתה חי. תן לי יד! תוציא אותי מכאן!'],
+  v_arg:    ['וירגיליוס', 'עזוב את הסירה, ארג\'נטי! דנטה, הישאר לשבת.'],
+  dis_in:   ['וירגיליוס', 'רואה את החומות? זאת העיר דיס. השער שלה הוא הכניסה לגיהנום התחתון. אנחנו ממשיכים דרך העיר.'],
+  demons:   ['השדים', 'אדם חי? סגרו את השער! שיישאר בחוץ!'],
+  furies:   ['הפוריות', 'הביאו את מדוזה! מבט אחד בה, והוא יהפוך לאבן!'],
+  medusa:   ['וירגיליוס', 'דנטה, הסתובב עכשיו! הפנה את הגב למגדל והבט אל המים.'],
+  stone:    ['וירגיליוס', 'הפעם הסתובב ברגע שאקרא לך. מבט אחד במדוזה הופך אותך לאבן.'],
+  angel_in: ['וירגיליוס', 'אל תסתובב עדיין. הבט אל המים, ליד הסירה. מישהו מתקרב.'],
+  d_angel:  ['דנטה', 'הוא הולך על המים.'],
+  v_angel:  ['וירגיליוס', 'שליח מן השמיים. תן לו לעבור.'],
+  angel:    ['השליח', 'ניתנה להם רשות לעבור. פתחו את השער.'],
+  d_end:    ['דנטה', 'חשבתי שכל מה שראינו מהמעקה זה הגיהנום.'],
+  v_end:    ['וירגיליוס', 'ראית עד לאן הוא מגיע. עכשיו תראה מה מחכה בדרך לשם. בוא, דנטה.'],
 };
 // the notebook: the poem Dante is writing as he goes
 const NOTES = [
@@ -175,6 +188,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       const R = o.userData.solidR || 0.48, dx = pos.x - v.x, dz = pos.z - v.z, d = Math.hypot(dx, dz); if (d < R && d > 1e-4) { pos.x += dx / d * (R - d); pos.z += dz / d * (R - d); } }
   }
   const solids = [];
+  const timers = []; const later = (t, fn) => timers.push({ t, fn });
+  function ticking(dt) { for (let i = timers.length - 1; i >= 0; i--) if ((timers[i].t -= dt) <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   // a circle's stair stays shut until its task is done: you cannot go more than a metre below the floor you are on
   let lockY = null, lockMsg = 0; const lastOk = new THREE.Vector3();
   function lock(floor) { lockY = Math.min(floor, pos.y) - 1.0; lastOk.copy(pos); }
@@ -235,6 +250,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y;
     let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
     if (keys.has('ArrowLeft')) yaw += dt * 1.9; if (keys.has('ArrowRight')) yaw -= dt * 1.9;
+    if (phase === 'cine') return runCine(dt);
     if (phase === 'sail') return ride(dt);
     if (phase === 'styx') return ride2(dt);
     const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
@@ -292,16 +308,16 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function say(id, after, keep) { for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].keep) queue.splice(i, 1); queue.push({ id, after, keep }); }
   // souls do not wait in line: they speak from where they stand, quieter with distance, under the guide's voice
   const murmurs = [];
-  function murmur(id, at) {
+  function murmur(id, at, after) {
     const [who, text] = LINES[id]; const a = new Audio(`voice/${id}.mp3`); a.volume = 0;
-    const m = { a, at, t: 0, max: 2 + text.length * 0.075 }; murmurs.push(m);
+    const m = { a, at, after, t: 0, max: 2 + text.length * 0.075 }; murmurs.push(m);
     a.addEventListener('loadedmetadata', () => { m.max = a.duration + 0.3; }); a.play().catch(() => {});
     $('gWho2').textContent = who; $('gText2').textContent = text; $('gSub2').classList.add('on');
   }
   function murmuring(dt) {
     for (let i = murmurs.length - 1; i >= 0; i--) { const m = murmurs[i]; m.t += dt;
       const d = Math.hypot(m.at.x - pos.x, m.at.z - pos.z); m.a.volume = sound.on ? Math.max(0, Math.min(0.85, 1.1 - d / 9)) : 0;
-      if (m.t > m.max || d > 11) { m.a.pause(); murmurs.splice(i, 1); if (!murmurs.length) $('gSub2').classList.remove('on'); } }
+      if (m.t > m.max || d > 11) { m.a.pause(); murmurs.splice(i, 1); if (!murmurs.length) $('gSub2').classList.remove('on'); if (m.after) m.after(); } }
   }
   function speak(dt) {
     if (speaking) { speaking.t += dt; if (speaking.done || speaking.t > speaking.max) { $('gSub').classList.remove('on'); if (speaking.after) speaking.after(); speaking = null; } return; }
@@ -373,16 +389,34 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const find = (name) => kept.find((o) => o.userData.name === name) || kept.find((o) => (o.userData.name || '').startsWith(name + '_'));   // the beasts are Beast_Lion_01 ...
   const TRIG = [
     { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) liven(o, false); } } },
-    { at: g(76, 0, 0), r: 4.6, run: () => { say('gate'); note(1); } },
-    { at: g(65.5, 0, stairY(65.5)), r: 2.6, run: () => say('v_tunnel') },
-    { at: g(55.4, 0, ZF), r: 2.6, run: () => { title('המבוא', 'חוף האכרון'); lock(ZF); hud('לך אחרי וירגיליוס אל הנהר'); say('v_view', null, true); } },                 // the pit opens in front of you
-    { at: p(53.3, 147, ZF), r: 2.2, run: () => { say('v_vest', null, true); note(2); } },
-    { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); hud('פסלים מתעוררים כשמתקרבים אליהם'); setTimeout(() => { if ($('gTask').textContent.startsWith('פסלים')) hud(''); }, 5200); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
+    { at: g(76, 0, 0), r: 4.6, run: () => { title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1);
+        say('v_gate', null, true); say('d_gate', null, true); say('v_gate2', () => hud('רד במנהרה אל שפת התהום, והבט למטה'), true); } },
+    { at: g(55.4, 0, ZF), r: 2.6, run: () => { lock(ZF); startCine(); } },                 // the pit opens in front of you
+    { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); note(3); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF), () => { say('v_river'); hud('גש לסירה שעל שפת הנהר'); }); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
     { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) liven(c, false);
-        say('charon', () => note(4), true); say('v_charon', null, true); say('v_task', () => { questOn = true; task(); }, true); } },
+        say('charon', () => note(4), true); say('v_charon', null, true); say('charon_task', null, true); say('v_task', () => { questOn = true; task(); }, true); } },
   ];
   function triggers() { for (const t of TRIG) if (!t.done && Math.hypot(t.at.x - pos.x, t.at.z - pos.z) < t.r && Math.abs(t.at.y - pos.y) < (t.top ? 1.2 : 3)) { t.done = true; t.run(); } }
+
+  // --- the view over the whole pit: while Virgil explains it, the camera leaves your eyes and glides over the funnel, the circles,
+  //     the storm of the second circle and the river, then comes back to you. Space skips the flight (the talk goes on). ---
+  let cine = null; const cEye = new THREE.Vector3(), cTar = new THREE.Vector3(), cA = new THREE.Vector3(), cB = new THREE.Vector3();
+  const SHOTS = [[p(41, 150, -1.5), p(0, 150, -54)], [p(24, 150, -8), p(46, 330, -30)], [p(39.5, 147, -13.2), p(46.3, 124, -18.3)], [p(46.8, 137, -8.2), p(51.85, 120, ZF)]];
+  function startCine() {
+    phase = 'cine'; cine = { shot: 0, out: false }; keys.clear(); cEye.copy(camera.position); camera.getWorldDirection(cA); cTar.copy(cEye).addScaledVector(cA, 20);
+    title('המבוא', 'חוף האכרון'); hud(matchMedia('(pointer: coarse)').matches ? 'הבט אל התהום' : 'הבט אל התהום · רווח מחזיר אליך את המבט');
+    say('m1', () => { if (cine) cine.shot = 1; }, true); say('m2', () => { if (cine) cine.shot = 2; }, true); say('m3', () => { if (cine) cine.shot = 3; }, true);
+    say('m4', () => { if (cine) cine.out = true; note(2); hud('התקרב לאחת הדמויות במבואה'); say('v_vest', null, true); }, true);
+  }
+  function runCine(dt) {
+    if (cine.out) { cA.set(pos.x, pos.y + EYE, pos.z); cB.set(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).multiplyScalar(20).add(cA); }
+    else { cA.copy(SHOTS[cine.shot][0]); cB.copy(SHOTS[cine.shot][1]); }
+    const k = 1 - Math.exp(-dt * (cine.out ? 2.4 : 0.75)); cEye.lerp(cA, k); cTar.lerp(cB, k);
+    camera.position.copy(cEye); camera.lookAt(cTar);
+    if (cine.out && cEye.distanceTo(cA) < 0.12) { cine = null; phase = 'walk'; }
+  }
+  addEventListener('keydown', (e) => { if (e.code === 'Space' && cine && !cine.out) { cine.out = true; if ($('gTask').textContent.startsWith('הבט אל התהום')) hud(''); } });
 
   // --- Charon's boat: it will not sail empty. Wake three souls who already wait at the water's edge; they board, then you may ---
   const BOAT_R = 51.85, DOCK = 120, LAND = 83.7, BOAT_YAW = 0.7388;                       // the hull is turned 42 degrees inside its group
@@ -405,7 +439,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       quest.push({ o, ok, line, u: (u || 0) * side });
     }
   }
-  function task() { $('gTask').textContent = !questOn ? '' : aboard < 3 ? `הער שלוש נשמות שמחכות על שפת המים · ${aboard}/3` : 'הסירה מלאה. עלה אליה'; $('gTask').classList.toggle('on', questOn); }
+  function task() { $('gTask').textContent = !questOn ? '' : aboard < 3 ? `הער את הנשמות שעומדות ליד המים · ${aboard}/3` : 'עלה לסירה'; $('gTask').classList.toggle('on', questOn); }
   function runQuest(dt) {
     if (!boat || phase !== 'walk') return;
     if (questOn) { for (const q of quest) { if (q.done) continue;
@@ -437,7 +471,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     phase = 'landed'; const q = p(50.55, 84.2, 0), gy = groundAt(q.x, ZF, q.z); pos.set(q.x, gy === null ? ZF : gy, q.z);
     yaw = Math.atan2(-Math.sin(rad(84.2)), -Math.cos(rad(84.2))) + Math.PI;               // look down the stair, towards 89 degrees
     if (guide) { scene.attach(guide); const w = p(50.5, 90.4, 0), wy = groundAt(w.x, -14.2, w.z); guide.position.set(w.x, wy === null ? -14.8 : wy, w.z); guide.rotation.set(0, guide.rotation.y, 0); }
-    lockY = null; hud('רד במדרגות אל המעגל הראשון'); say('v_land', null, true); TRIG.push({ at: p(50.5, 89.3, -14.8), r: 1.3, run: enterLimbo });
+    lockY = null; hud('רד במדרגות אל לימבו, המעגל הראשון'); TRIG.push({ at: p(50.5, 89.3, -14.8), r: 1.3, run: enterLimbo });
   }
 
   // ======================= the circles after the river =========================================
@@ -491,37 +525,52 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     for (const n of ['Francesca', 'Paolo']) { const o = find(n); if (o) { scene.attach(o); lovers.push({ o, y: o.position.y }); } }
   }
   function enterLimbo() {
-    phase = 'limbo'; save('limbo'); title('לימבו', 'המעגל הראשון'); route('limboIn'); lock(L1); hud('מצא את ארבעת המשוררים והער אותם לפי הסדר · 0/4'); say('l_in', null, true);
+    phase = 'limbo'; save('limbo'); title('לימבו', 'המעגל הראשון'); route('limboIn'); lock(L1); hud('לך עם וירגיליוס אל ארבעת המשוררים'); say('l_in', null, true);
     TRIG.push({ at: p(50.0, 79.5, L1), r: 2.6, run: () => { if (spoke.l1) liven(spoke.l1, true); murmur('l_soul1', spoke.l1 ? spoke.l1.position : p(50.6, 78, L1)); } },
-      { at: p(50.0, 65.5, L1), r: 2.6, run: () => { if (spoke.l2) liven(spoke.l2, true); murmur('l_soul2', spoke.l2 ? spoke.l2.position : p(50.6, 64, L1)); } },
-      { at: p(49.8, 59.5, L1), r: 3, run: () => say('l_poets', () => { poetsOn = true; hud('הער את ארבעת המשוררים לפי סדרם · 0/4'); }, true) });
+      { at: p(49.8, 59.5, L1), r: 3, run: () => say('l_poets', () => { poetsOn = true; poetTask(); }, true) });
+  }
+  const PN = ['הומרוס', 'הורטיוס', 'אובידיוס', 'לוקנוס'];
+  const poetTask = () => hud(`הער את ${PN[poetAt]} · ${poetAt}/4`);
+  // each poet's name floats over his head when you are near
+  function nameTag(text) {
+    const c = document.createElement('canvas'); c.width = 384; c.height = 96; const x = c.getContext('2d');
+    x.font = '700 54px "Frank Ruhl Libre", "David", serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.shadowColor = '#000'; x.shadowBlur = 14; x.fillStyle = '#f7e9c9';
+    x.fillText(text, 192, 50); x.fillText(text, 192, 50);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false })); sp.scale.set(1.5, 0.375, 1); sp.visible = false; sp.renderOrder = 9; scene.add(sp); return sp;
   }
   function runPoets() {
-    if (!poetsOn) return;
+    if (!poetsOn && !poetAt) return;
     for (const q of poets) { const d = Math.hypot(q.o.position.x - pos.x, q.o.position.z - pos.z);
+      if (!q.tag) { q.tag = nameTag(PN[q.rank]); q.tag.position.set(q.o.position.x, q.o.position.y + 2.25, q.o.position.z); }
+      q.tag.visible = d < 8;
+      if (!poetsOn) continue;
       if (d > 2.6) { q.away = true; continue; } if (d > 1.7 || !q.away || q.woke) continue;
       q.away = false;
-      if (q.rank === poetAt) { q.woke = true; liven(q.o, true); murmur('p' + q.rank, q.o.position); poetAt++; hud(`הער את ארבעת המשוררים לפי סדרם · ${poetAt}/4`);
-        if (poetAt === 4) { poetsOn = false; lockY = null; hud('רד במדרגות אל המעגל השני'); say('l_sixth', () => { note(5); route('limboOut'); say('l_back', null, true);
-          TRIG.push({ at: p(47.3, 95.4, L1), r: 1.5, run: () => say('l_down') }, { at: p(46.9, 90.0, L2), r: 1.4, run: enterLust }); }, true); } }
-      else murmur('p' + q.rank, q.o.position);                                             // out of turn: he speaks, and stays stone
+      if (q.rank === poetAt) { q.woke = true; liven(q.o, true); poetAt++;
+        if (poetAt < 4) { murmur('p' + q.rank, q.o.position); poetTask(); }
+        else { poetsOn = false; hud('');
+          murmur('p3', q.o.position, () => say('l_sixth', () => { note(5); lockY = null; hud('רד במדרגות אל המעגל השני'); route('limboOut');
+            TRIG.push({ at: p(46.9, 90.0, L2), r: 1.4, run: enterLust }); }, true)); } }
+      else say('l_w' + poetAt);                                                             // not his turn yet: Virgil names the one you are looking for
     }
   }
 
   // --- the second circle: Minos at the door, then the two who fly together in the storm (Inferno V) ---
   const lovers = []; let loversOn = false, loversDown = 0, faintT = -1;
   function enterLust() {
-    phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); lock(L2); hud('עבור את מינוס השופט'); say('c2_in', null, true);
-    TRIG.push({ at: p(44.8, 86.5, L2), r: 2.4, run: () => { if (spoke.c2) liven(spoke.c2, true); murmur('c2_soul', spoke.c2 ? spoke.c2.position : p(45.9, 86, L2)); } },
-      { at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) { m.userData.solidR = 0.9; liven(m, false); }
-        say('minos', null, true); say('v_minos', null, true); say('c2_task', () => { loversOn = true; hud('מצא בסערה את השניים שעפים יחד'); route('toLovers'); }, true); } });
+    phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); lock(L2); hud('גש אל מינוס בכניסה למעגל'); say('c2_in', null, true);
+    TRIG.push({ at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) { m.userData.solidR = 0.9; liven(m, false); }
+        say('minos', null, true); say('v_minos', () => { if (m) { scene.attach(m); const w = p(44.8, 81.5, 0), dx = m.position.x - w.x, dz = m.position.z - w.z, d = Math.hypot(dx, dz) || 1; aside = { o: m, x: dx / d, z: dz / d, left: 1.3 }; } }, true);
+        say('c2_task', () => { loversOn = true; hud('מצא שתי נשמות שעפות יחד בסערה'); route('toLovers'); }, true); } });
   }
+  let aside = null;
   function runLovers(dt) {
+    if (aside) { const st = Math.min(aside.left, dt * 0.8); aside.o.position.x += aside.x * st; aside.o.position.z += aside.z * st; if ((aside.left -= st) <= 0) aside = null; }   // Minos steps out of the way
     for (const l of lovers) l.o.position.y = l.y + Math.sin(performance.now() / 900 + l.y) * 0.12 - loversDown;        // they drift, and come down when called
     if (!lovers.length) return;
     const o = lovers[0].o, d = Math.hypot(o.position.x - pos.x, o.position.z - pos.z);
     if (loversOn && d < 3.4 && Math.abs(pos.y - L2) < 1.5) { loversOn = false; hud(''); for (const l of lovers) liven(l.o, false);
-      faintT = -2; say('francesca', () => { note(6); say('d_faint', () => { note(7); faintT = 0; }, true); }, true); }
+      faintT = -2; say('d_call', null, true); say('francesca', () => note(6), true); say('d_faint', () => { note(7); faintT = 0; }, true); }
     if (faintT === -2) loversDown = Math.min(1.75, loversDown + dt * 0.9);
     if (faintT >= 0) { faintT += dt; $('gFade').style.opacity = Math.min(1, faintT / 2.6); pitch = Math.min(1.2, pitch + dt * 0.35);
       if (faintT > 3.2) { faintT = -1; enterGluttony(true); } }
@@ -531,7 +580,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function upgrade(dt) { if ((upT += dt) < 1) return; upT = 0;
     for (const o of kept) { if (o.userData.hi || !o.visible || o === guide || !detail.has(o.userData.meshKey)) continue;
       const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; o.geometry = geo; o.material = mat.clone(); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
-  function stages(dt) { upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
+  function stages(dt) { ticking(dt); upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
 
   // --- the third circle: you come to under the rain; Cerberus bars the way until he is fed a fistful of mud (Inferno VI, 22-33) ---
   const L3 = S * -58; let cerb = null, mud = false, fed = false, c3On = false, nagged = false; const mounds = [], shots = [];
@@ -550,16 +599,16 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const q = p(42.2, 91.2, L3), gy = groundAt(q.x, L3, q.z); pos.set(q.x, gy === null ? L3 : gy, q.z); yaw = rad(91.2); pitch = fromFaint ? 0.9 : 0;
     if (fromFaint) { wakeT = 0; crouch = 1.15; }
     route('c3'); if (guide) guide.position.copy(ROUTES.c3[0]);
-    lock(L3); c3On = true; for (const m of mounds) m.visible = true; hud('אסוף חופן בוץ והשלך אותו לקרברוס');
+    lock(L3); c3On = true; for (const m of mounds) m.visible = true; hud('אסוף חופן בוץ מאחת הערמות');
     say('c3_in', null, true); say('c3_task', null, true);
   }
   function runGluttony(dt) {
     if (wakeT >= 0) { wakeT += dt; const k = Math.min(1, wakeT / 4.2), e = k * k * (3 - 2 * k);                   // you open your eyes and get up
       $('gFade').style.opacity = Math.max(0, 1 - Math.max(0, wakeT - 0.6) / 2.4); crouch = 1.15 * (1 - e); if (wakeT < 4.2) pitch = 0.9 * (1 - e); else wakeT = -1; }
     for (const m of mounds) if (m.visible) { m.material.emissiveIntensity = 0.5 + 0.35 * Math.sin(performance.now() / 420 + m.position.x);
-      if (c3On && !mud && !fed && Math.hypot(m.position.x - pos.x, m.position.z - pos.z) < 0.95) { mud = true; m.visible = false; hud('בידך חופן בוץ. התקרב לקרברוס'); } }
+      if (c3On && !mud && !fed && Math.hypot(m.position.x - pos.x, m.position.z - pos.z) < 0.95) { mud = true; m.visible = false; hud('התקרב לקרברוס וזרוק לו את הבוץ'); } }
     if (cerb && c3On && !fed) { cerb.getWorldPosition(v); const d = Math.hypot(v.x - pos.x, v.z - pos.z);
-      if (d < 3.7 && mud) { mud = false; fed = true; hud('המשך אחרי וירגיליוס');                                                      // the throw
+      if (d < 3.7 && mud) { mud = false; fed = true; hud('');                                                      // the throw
         const ball = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshStandardMaterial({ color: 0x2c1d12, roughness: 0.6 })); scene.add(ball);
         shots.push({ ball, t: 0, from: camera.position.clone(), to: new THREE.Vector3(v.x, v.y + 1.5, v.z) }); }
       else if (d < 3.2 && !nagged) { nagged = true; say('c3_empty'); } }
@@ -569,14 +618,14 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
   function calm() {
     if (cerb) { liven(cerb, false); cerb.userData.solidR = 1.15; }
-    note(8); say('c3_ok', null, true); route('c3b');
-    TRIG.push({ at: p(41.6, 105, L3), r: 2.6, run: () => { if (spoke.c3) liven(spoke.c3, true); say('ciacco', null, true); say('c3_end', null, true); say('c3_out', leaveGluttony, true); } });
+    note(8); say('c3_ok', null, true); leaveGluttony();
+    TRIG.push({ at: p(41.6, 105, L3), r: 2.6, run: () => { if (spoke.c3) liven(spoke.c3, true); murmur('ciacco', spoke.c3 ? spoke.c3.position : p(42.6, 106.5, L3), () => say('v_ciacco')); } });   // Ciacco is there for whoever walks over to him
   }
 
   // --- the fourth circle: Plutus collapses at a word; the pushers cannot be woken, because nobody can tell them apart (Inferno VII) ---
   const L4 = S * -66.7; let plutus = null, plutusDown = -1, c4On = false, tried = []; const pushers = [];
   const stair4 = Array.from({ length: 7 }, (_, i) => p(40.05, 95.6 - i * 1.0, L3 - 0.2 + (L4 - L3) * i / 6));   // top at 96 degrees, foot at 89
-  ROUTES.c3out = [...arc(40.95, 105, 97.5, L3), p(40.5, 96.4, L3), ...stair4, p(39.6, 88.6, L4)];
+  ROUTES.c3out = [...arc(40.95, 99.5, 97.5, L3), p(40.5, 96.4, L3), ...stair4, p(39.6, 88.6, L4)];
   ROUTES.toPlutus = [...arc(38.7, 88, 67, L4)];
   ROUTES.c4 = [...arc(38.3, 64, 38, L4)];
   function setupAvarice() {
@@ -584,7 +633,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], 0.9, true);
     // the two rows stand still in the game, so that the lane stays open; the boulders along it are cleared like the statues
     const road = [...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
-    for (const n of ['Pushers1', 'Pushers2']) { const a = ANIM[n]; if (!a) continue; delete ANIM[n]; a.o.updateMatrixWorld(true);
+    for (const n of ['Pushers1', 'Pushers2']) { const a = ANIM[n]; if (!a) continue; delete ANIM[n]; a.o.rotation.y = 0; a.o.updateMatrixWorld(true); rows.push(a.o);
       a.o.traverse((c) => { if (!c.isInstancedMesh || lows.has(c)) return; let changed = false;
         for (let i = 0; i < c.count; i++) { c.getMatrixAt(i, m); q.setFromMatrixPosition(m).applyMatrix4(c.matrixWorld); if (q.lengthSq() < 1) continue;
           let near = false; for (const w of road) if (Math.hypot(w.x - q.x, w.z - q.z) < 1.25) { near = true; break; }
@@ -594,23 +643,26 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue; q.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
         const a = (Math.atan2(-q.z, q.x) * 180 / Math.PI + 360) % 360; if (a > 32 && a < 59.5 && Math.abs(q.y - L4) < 1.5) pushers.push(q.clone()); } }
   }
-  function leaveGluttony() { lockY = null; hud('רד במדרגות אל המעגל הרביעי'); route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
+  function leaveGluttony() { lockY = null; hud('עבור ליד קרברוס אל המדרגות'); route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
   function enterAvarice() {
-    phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('עבור את פלוטוס, שומר המעגל'); say('c4_in', null, true);
+    phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('לך אחרי וירגיליוס אל דוחפי הסלעים');
     TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { if (plutus) liven(plutus, false);
-      say('plutus', () => note(9), true); say('v_plutus', () => { plutusDown = 0; }, true);
-      say('c4_task', () => { c4On = true; route('c4'); hud('נסה להעיר את דוחפי הסלעים · 0/3'); }, true); } });
+      say('plutus', () => note(9), true); say('v_plutus', () => { plutusDown = 0; route('c4'); }, true); } },
+      { at: p(38.3, 59.5, L4), r: 3, run: () => { say('c4_in', null, true); say('d_c4', () => { c4On = true; hud('נסה לדבר עם שלושה מדוחפי הסלעים · 0/3'); }, true); } });
   }
-  const dull = [];
+  const dull = [], rows = []; let rowT = 0, firstTry = true;
   function runAvarice(dt) {
+    // the two rows lean into their boulders, meet with a crack, fall back and come again
+    rowT += dt; { const u = (rowT % 3.4) / 3.4, k = u < 0.72 ? u / 0.72 : 1 - (u - 0.72) / 0.28, was = rows.hit; rows.hit = u >= 0.72;
+      rows.forEach((o, i) => { o.rotation.y = (i ? -1 : 1) * 0.017 * (k * k - 0.5); }); if (rows.hit && !was && Math.abs(pos.y - L4) < 2) knock(); }
     if (plutus && plutusDown >= 0 && plutusDown < 1) { plutusDown = Math.min(1, plutusDown + dt / 1.4);                 // he falls like sails when the mast snaps
       const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 - 0.6 * k); plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
     for (let i = dull.length - 1; i >= 0; i--) { const d = dull[i]; d.t += dt; d.l.intensity = 3 * Math.max(0, 1 - d.t / 1.6) * (0.6 + 0.4 * Math.sin(d.t * 30)); if (d.t > 1.6) { scene.remove(d.l); dull.splice(i, 1); } }
     if (!c4On) return;
     for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 2.2 || tried.some((t) => t.distanceTo(q) < 2.0)) continue;
       tried.push(q); knock(); const l = new THREE.PointLight(0x9aa2b0, 0, 5, 1.8); l.position.set(q.x, q.y + 1.8, q.z); scene.add(l); dull.push({ l, t: 0 });   // a cold flicker, and nothing
-      hud(`נסה להעיר את דוחפי הסלעים · ${tried.length}/3`);
-      if (tried.length === 3) { c4On = false; hud('המשך אחרי וירגיליוס'); say('c4_none', () => note(10), true); say('c4_out', leaveAvarice, true); } break; }
+      hud(`נסה לדבר עם שלושה מדוחפי הסלעים · ${tried.length}/3`); if (firstTry) { firstTry = false; say('d_try'); }
+      if (tried.length === 3) { c4On = false; hud(''); say('c4_none', () => note(10), true); say('c4_out', leaveAvarice, true); } break; }
   }
 
   // --- the fifth circle: the stair ends in the marsh, so it is all done from Phlegyas' boat: the crossing, the shut gate of Dis,
@@ -629,17 +681,17 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
   function leaveAvarice() { lockY = null; hud('רד במדרגות אל הביצה'); route('c4out'); TRIG.push({ at: p(36.5, 89.6, L5 + 0.4), r: 1.5, run: enterStyx }); }
   function enterStyx() {
-    phase = 'styx'; save('styx'); title('הסטיקס', 'המעגל החמישי'); lockY = null; hud('שב בסירה. פלגיאס מעביר אותך אל העיר דיס');
+    phase = 'styx'; save('styx'); title('הסטיקס', 'המעגל החמישי'); lockY = null; hud('עלה לסירה של פלגיאס');
     if (b2) placeB2(91.5); sail2 = 0; yaw = rad(91.5) + Math.PI; pitch = -0.05;
     if (guide && b2) { guideRide = true; seat2(0.35, tv); b2.attach(guide); guide.position.copy(b2.worldToLocal(tv.clone())); }
-    say('phlegyas', () => note(11), true); say('v_phleg', null, true);
+    say('c5_in', null, true); say('phlegyas', () => note(11), true); say('v_phleg', () => hud(''), true);
   }
   function ride2(dt) {
     if (!b2) return;
     if (sail2 >= 0) { sail2 += dt; const total = (91.5 - 62.5) * Math.PI / 180 * B2R / 1.45, k = Math.min(1, Math.max(0, sail2 - 2.5) / total), e = k * k * (3 - 2 * k);
       placeB2(91.5 + (62.5 - 91.5) * e, 0.75 * e);                                         // it stops a few metres short of the gate, out in the marsh, so the wall and the tower are in view
       if (k > 0.42 && !argentiSaid) { argentiSaid = true; say('argenti', null, true); say('v_arg', null, true); }
-      if (k === 1) { sail2 = -1; disT = 0; say('dis_in', null, true); say('demons', null, true); say('furies', null, true); say('medusa', () => { medT = 0; hud('הסתובב! אל תביט אל המגדל'); }, true); } }
+      if (k === 1) { sail2 = -1; disT = 0; say('dis_in', null, true); say('demons', null, true); say('furies', () => hud('הסתובב והפנה את הגב למגדל'), true); say('medusa', () => { medT = 0; }, true); } }
     b2.position.y = b2Y + Math.sin(performance.now() / 770) * 0.03;
     seat2(1.25, pos); pos.y += 0.05;
     camera.position.set(pos.x, pos.y + EYE - 0.25, pos.z); camera.rotation.set(pitch, yaw, 0, 'YXZ');
@@ -647,15 +699,15 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const gx = DIS.x - pos.x, gz = DIS.z - pos.z, gl = Math.hypot(gx, gz) || 1, facing = (-Math.sin(yaw) * gx - Math.cos(yaw) * gz) / gl > -0.1;
     if (medT >= 0) { medT += dt; glow.intensity = 60 * Math.min(1, medT / 5) * (0.85 + 0.15 * Math.sin(medT * 9));
       if (medT > 5 && facing) { medT = -1; stoned = 0; hud(''); }
-      else if (medT > 8) { medT = -1; glow.intensity = 0; hud('הבט אל המים'); note(12); say('angel_in', () => { angelT = 0; if (angel) { angel.visible = true; liven(angel, false); } }, true); } }
+      else if (medT > 8) { medT = -1; glow.intensity = 0; hud('הבט אל המים ליד הסירה'); note(12); say('angel_in', () => { angelT = 0; if (angel) { angel.visible = true; liven(angel, false); } say('d_angel', null, true); say('v_angel', null, true); }, true); } }
     if (stoned >= 0) { stoned += dt; const f = $('gFade'); f.style.background = '#8d8d88'; f.style.opacity = Math.min(1, stoned / 0.9) * (stoned > 2.6 ? Math.max(0, 1 - (stoned - 2.6) / 1.2) : 1);   // you turn to stone, then it is undone
       glow.intensity = Math.max(0, glow.intensity - dt * 40);
-      if (stoned > 3.8) { stoned = -1; f.style.background = '#000'; f.style.opacity = 0; say('stone', () => { medT = 0; hud('הסתובב! אל תביט אל המגדל'); }, true); } }
+      if (stoned > 3.8) { stoned = -1; f.style.background = '#000'; f.style.opacity = 0; hud('הסתובב והפנה את הגב למגדל'); say('stone', () => { medT = 0; }, true); } }
     if (angelT >= 0 && angel) { angelT += dt; const k = Math.min(1, angelT / 6), e = k * k * (3 - 2 * k), q = p(35.4 - 0.75 * e, 80 - (80 - 55.6) * e, 0);
       angel.position.x = q.x; angel.position.z = q.z;
-      if (k === 1) { angelT = -1; say('angel', () => { doorT = 0; }, true); } }
+      if (k === 1) { angelT = -1; hud(''); say('angel', () => { doorT = 0; }, true); } }
     if (doorT >= 0) { doorT += dt; for (const d of doors) d.position.y -= dt * 0.9;                                    // the doors sink away
-      if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('dis_open', () => end('סוף הפרק הראשון'), true); } }
+      if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); } }
   }
 
   function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} דקות`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -719,6 +771,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   };
   game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, lockY, sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, lockY, cine: cine && cine.shot, sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
