@@ -58,6 +58,13 @@ const LINES = {
   c3_ok:    ['וירגיליוס', 'הוא שותק, כמו כלב שקיבל את מנתו. עבור.'],
   ciacco:   ['צ\'אקו', 'אתה שמובילים אותך דרך הגיהנום הזה, זהה אותי אם תוכל.'],
   c3_end:   ['וירגיליוס', 'הוא לא יקום עוד, עד קול החצוצרה.'],
+  c3_out:   ['וירגיליוס', 'בוא. המדרגות הבאות מאחורינו, ליד קרברוס.'],
+  // --- the fourth circle: the hoarders and the wasters ---
+  c4_in:    ['וירגיליוס', 'כאן מי שאגרו ומי שפיזרו. שני חטאים הפוכים, ועונש אחד.'],
+  plutus:   ['פלוטוס', 'פאפה סאטאן, פאפה סאטאן, אלפה!'],
+  v_plutus: ['וירגיליוס', 'שתוק, זאב ארור. אכול את עצמך בזעמך.'],
+  c4_task:  ['וירגיליוס', 'הם מגלגלים סלעים זה מול זה, לנצח. נסה להעיר אחד מהם. כל אחד.'],
+  c4_none:  ['וירגיליוס', 'אי אפשר לזהות אף אחד מהם. חיים בלי הבחנה מחקו את פניהם.'],
 };
 // the notebook: the poem Dante is writing as he goes
 const NOTES = [
@@ -70,6 +77,8 @@ const NOTES = [
   ['Amor condusse noi ad una morte', 'האהבה הובילה אותנו אל מוות אחד', 'ה׳, 106'],
   ['E caddi come corpo morto cade', 'ונפלתי, כפי שנופל גוף מת', 'ה׳, 142'],
   ['Cerbero, fiera crudele e diversa', 'קרברוס, חיה אכזרית ומשונה', 'ו׳, 13'],
+  ['Pape Satàn, pape Satàn aleppe!', 'קריאתו הסתומה של פלוטוס', 'ז׳, 1'],
+  ['ad ogne conoscenza or li fa bruni', 'עכשיו הם כהים מכדי שיזהו אותם', 'ז׳, 54'],
 ];
 
 export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM }) {
@@ -371,11 +380,11 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function route(name) { const pts = ROUTES[name]; PATH.length = 0; pts.forEach((q, i) => PATH.push([q, i % 3 === 2 || i === pts.length - 1 ? 1 : 0]));
     guideAt = 0; guideRide = false; if (guide) { if (guide.parent !== scene) scene.attach(guide); guide.rotation.set(0, guide.rotation.y, 0); if (guide.position.distanceTo(pts[0]) > 6) guide.position.copy(pts[0]); } }
   // a lane through the crowd along the roads, so nobody has to walk through statues
-  function clearAlong(pts, w) {
+  function clearAlong(pts, w, all) {
     const q = new THREE.Vector3(), ab = new THREE.Vector3(), ap = new THREE.Vector3(); let gone = 0;
     for (const e of LOD) {
       let moving = false; for (let o = e.low.parent; o; o = o.parent) if ((o.userData.name || '').startsWith('ANIM_')) moving = true;
-      if (moving || !/^(Fig_|Char_)/.test(e.key)) continue;
+      if ((moving && !all) || !/^(Fig_|Char_)/.test(e.key)) continue;
       e.low.updateMatrixWorld(true); let changed = false;
       for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue;
         q.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
@@ -402,7 +411,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     spoke.l1 = speaker(p(50.2, 78, L1), 3.5, p(50.65, 78, 0)); spoke.l2 = speaker(p(50.2, 64, L1), 3.5, p(50.65, 64, 0));
     spoke.c2 = speaker(p(45.8, 86, L2), 3, p(45.9, 86, 0));
     game.lane = clearAlong(ROUTES.limboIn, 0.85) + clearAlong(arc(49.75, 58, 46, L1), 0.8) + clearAlong(arc(48.55, 56.5, 46, L1), 0.7) + clearAlong(ROUTES.limboOut, 0.85) + clearAlong(ROUTES.toMinos, 0.6) + clearAlong(ROUTES.toLovers, 0.75);
-    setupGluttony();
+    setupGluttony(); setupAvarice();
     for (const n of ['Storm', 'Storm2']) if (ANIM[n]) ANIM[n].p.y += 1.5;                 // the storm flies over your head, not through it
     for (const n of ['Francesca', 'Paolo']) { const o = find(n); if (o) { scene.attach(o); lovers.push({ o, y: o.position.y }); } }
   }
@@ -447,7 +456,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function upgrade(dt) { if ((upT += dt) < 1) return; upT = 0;
     for (const o of kept) { if (o.userData.hi || !o.visible || o === guide || !detail.has(o.userData.meshKey)) continue;
       const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; o.geometry = geo; o.material = mat.clone(); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
-  function stages(dt) { upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); }
+  function stages(dt) { upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
 
   // --- the third circle: you come to under the rain; Cerberus bars the way until he is fed a fistful of mud (Inferno VI, 22-33) ---
   const L3 = S * -58; let cerb = null, mud = false, fed = false, c3On = false, nagged = false; const mounds = [], shots = [];
@@ -485,7 +494,47 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function calm() {
     if (cerb) { liven(cerb, false); cerb.userData.solidR = 1.15; }
     note(8); say('c3_ok', null, true); route('c3b');
-    TRIG.push({ at: p(41.6, 105, L3), r: 2.6, run: () => { if (spoke.c3) liven(spoke.c3, true); say('ciacco', null, true); say('c3_end', () => end('סוף הפרק הראשון'), true); } });
+    TRIG.push({ at: p(41.6, 105, L3), r: 2.6, run: () => { if (spoke.c3) liven(spoke.c3, true); say('ciacco', null, true); say('c3_end', null, true); say('c3_out', leaveGluttony, true); } });
+  }
+
+  // --- the fourth circle: Plutus collapses at a word; the pushers cannot be woken, because nobody can tell them apart (Inferno VII) ---
+  const L4 = S * -66.7; let plutus = null, plutusDown = -1, c4On = false, tried = []; const pushers = [];
+  const stair4 = Array.from({ length: 7 }, (_, i) => p(40.05, 95.6 - i * 1.0, L3 - 0.2 + (L4 - L3) * i / 6));   // top at 96 degrees, foot at 89
+  ROUTES.c3out = [...arc(40.95, 105, 97.5, L3), p(40.5, 96.4, L3), ...stair4, p(39.6, 88.6, L4)];
+  ROUTES.toPlutus = [...arc(38.7, 88, 67, L4)];
+  ROUTES.c4 = [...arc(38.3, 64, 46, L4)];
+  function setupAvarice() {
+    plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); }
+    game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4], 0.9, true);
+    // the two rows stand still in the game, so that the lane stays open; the boulders along it are cleared like the statues
+    const road = [...ROUTES.toPlutus, ...ROUTES.c4], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
+    for (const n of ['Pushers1', 'Pushers2']) { const a = ANIM[n]; if (!a) continue; delete ANIM[n]; a.o.updateMatrixWorld(true);
+      a.o.traverse((c) => { if (!c.isInstancedMesh || lows.has(c)) return; let changed = false;
+        for (let i = 0; i < c.count; i++) { c.getMatrixAt(i, m); q.setFromMatrixPosition(m).applyMatrix4(c.matrixWorld); if (q.lengthSq() < 1) continue;
+          let near = false; for (const w of road) if (Math.hypot(w.x - q.x, w.z - q.z) < 1.25) { near = true; break; }
+          if (near) { c.setMatrixAt(i, ZERO); changed = true; } else { const k = cell(q.x, q.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(q.x, q.y, q.z); } }
+        if (changed) c.instanceMatrix.needsUpdate = true; }); }
+    for (const e of LOD) { if (e.key !== 'Fig_Pushing_nb') continue; e.low.updateMatrixWorld(true);
+      for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue; q.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
+        const a = (Math.atan2(-q.z, q.x) * 180 / Math.PI + 360) % 360; if (a > 40 && a < 70 && Math.abs(q.y - L4) < 1.5) pushers.push(q.clone()); } }
+  }
+  function leaveGluttony() { route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
+  function enterAvarice() {
+    phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); say('c4_in', null, true);
+    TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { if (plutus) liven(plutus, false);
+      say('plutus', () => note(9), true); say('v_plutus', () => { plutusDown = 0; }, true);
+      say('c4_task', () => { c4On = true; route('c4'); hud('נסה להעיר את דוחפי הסלעים · 0/3'); }, true); } });
+  }
+  const dull = [];
+  function runAvarice(dt) {
+    if (plutus && plutusDown >= 0 && plutusDown < 1) { plutusDown = Math.min(1, plutusDown + dt / 1.4);                 // he falls like sails when the mast snaps
+      const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 - 0.6 * k); plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
+    for (let i = dull.length - 1; i >= 0; i--) { const d = dull[i]; d.t += dt; d.l.intensity = 3 * Math.max(0, 1 - d.t / 1.6) * (0.6 + 0.4 * Math.sin(d.t * 30)); if (d.t > 1.6) { scene.remove(d.l); dull.splice(i, 1); } }
+    if (!c4On) return;
+    for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 1.7 || tried.some((t) => t.distanceTo(q) < 2.5)) continue;
+      tried.push(q); const l = new THREE.PointLight(0x9aa2b0, 0, 5, 1.8); l.position.set(q.x, q.y + 1.8, q.z); scene.add(l); dull.push({ l, t: 0 });   // a cold flicker, and nothing
+      hud(`נסה להעיר את דוחפי הסלעים · ${tried.length}/3`);
+      if (tried.length === 3) { c4On = false; hud(''); say('c4_none', () => { note(10); end('סוף הפרק הראשון'); }, true); } break; }
   }
 
   function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -518,6 +567,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     addEventListener('resize', () => { if (game.active) { camera.fov = 68; camera.updateProjectionMatrix(); } });
   }
 
+  // where a saved game picks up: how many notebook lines you already hold, where you stand, what begins
+  const CPS = { limbo: [5, p(50.5, 89.3, L1), enterLimbo], lust: [6, p(46.9, 90.0, L2), enterLust], gluttony: [8, p(42.2, 91.2, L3), () => enterGluttony(false)], avarice: [9, p(39.9, 89.2, L4), enterAvarice] };
   game.saved = () => { try { return localStorage.getItem('inferno_cp'); } catch (e) { return null; } };
   game.start = (cp) => {
     buildCollider(); setupBoat();
@@ -529,12 +580,12 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
     document.body.classList.add('playing');
     game.active = true; note(0);
-    if (cp === 'limbo' || cp === 'lust' || cp === 'gluttony') {                          // pick up where the last visit stopped
-      for (const t of TRIG) t.done = true; for (let i = 1; i < (cp === 'gluttony' ? 8 : cp === 'lust' ? 6 : 5); i++) note(i);
+    if (CPS[cp]) {                          // pick up where the last visit stopped
+      for (const t of TRIG) t.done = true; for (let i = 1; i < CPS[cp][0]; i++) note(i);
       if (boat) placeBoat(LAND);
-      const q = cp === 'lust' ? p(46.9, 90.0, L2) : p(50.5, 89.3, L1); pos.copy(q); const y0 = groundAt(q.x, q.y, q.z); if (y0 !== null) pos.y = y0;
+      const q = CPS[cp][1]; pos.copy(q); const y0 = groundAt(q.x, q.y, q.z); if (y0 !== null) pos.y = y0;
       yaw = rad(90) + Math.PI;                                                          // both roads start towards the smaller angles
-      if (cp === 'gluttony') enterGluttony(false); else if (cp === 'lust') enterLust(); else enterLimbo();
+      CPS[cp][2]();
       if (guide) guide.position.copy(PATH[0][0]);
     } else { say('v_start'); title('היער האפל', 'בחצי דרכם של חיינו'); }
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
@@ -542,6 +593,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   };
   game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }

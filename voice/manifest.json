@@ -79,6 +79,14 @@
   "queue": {
    "character": "נשמה בתור למינוס",
    "brief": "גבר, מתוח, לוחש."
+  },
+  "ciacco": {
+   "character": "צ'אקו",
+   "brief": "גבר כבד, קול עייף ורטוב, מדבר מתוך הבוץ."
+  },
+  "plutus": {
+   "character": "פלוטוס",
+   "brief": "קול צרוד וחנוק, מקרקר. מילים חסרות פשר, בזעם."
   }
  },
  "lines": {
@@ -371,8 +379,8 @@
   },
   "ciacco": {
    "file": "voice/ciacco.mp3",
-   "cast": "virgil",
-   "character": "וירגיליוס",
+   "cast": "ciacco",
+   "character": "צ'אקו",
    "text": "אתה שמובילים אותך דרך הגיהנום הזה, זהה אותי אם תוכל.",
    "recorded": false
   },
@@ -381,6 +389,48 @@
    "cast": "virgil",
    "character": "וירגיליוס",
    "text": "הוא לא יקום עוד, עד קול החצוצרה.",
+   "recorded": false
+  },
+  "c3_out": {
+   "file": "voice/c3_out.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "בוא. המדרגות הבאות מאחורינו, ליד קרברוס.",
+   "recorded": false
+  },
+  "c4_in": {
+   "file": "voice/c4_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "כאן מי שאגרו ומי שפיזרו. שני חטאים הפוכים, ועונש אחד.",
+   "recorded": false
+  },
+  "plutus": {
+   "file": "voice/plutus.mp3",
+   "cast": "plutus",
+   "character": "פלוטוס",
+   "text": "פאפה סאטאן, פאפה סאטאן, אלפה!",
+   "recorded": false
+  },
+  "v_plutus": {
+   "file": "voice/v_plutus.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "שתוק, זאב ארור. אכול את עצמך בזעמך.",
+   "recorded": false
+  },
+  "c4_task": {
+   "file": "voice/c4_task.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הם מגלגלים סלעים זה מול זה, לנצח. נסה להעיר אחד מהם. כל אחד.",
+   "recorded": false
+  },
+  "c4_none": {
+   "file": "voice/c4_none.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אי אפשר לזהות אף אחד מהם. חיים בלי הבחנה מחקו את פניהם.",
    "recorded": false
   }
  }
