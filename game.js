@@ -19,10 +19,9 @@ const LINES = {
   d_gate:   ['דנטה', 'אנחנו נכנסים לגיהנום כדי לצאת מהיער?'],
   v_gate2:  ['וירגיליוס', 'כן. נרד עד התחתית. משם אוכל להראות לך את הדרך החוצה. הישאר קרוב אליי.'],
   // --- 2. the view over the whole pit, and the vestibule ---
-  m1:       ['וירגיליוס', 'עצור כאן רגע, דנטה. הבט עד למטה. כל התהום שאתה רואה היא הגיהנום. הוא בנוי כמו משפך בתוך האדמה, רחב כאן למעלה, והולך ונעשה צר ככל שיורדים. בתחתיתו, עמוק במרכז האדמה, יש אגם קפוא.'],
-  m2:       ['וירגיליוס', 'רואה את המדרגות הענקיות לאורך הדפנות? אלה תשעת המעגלים. לכל נשמה יש מקום לפי המעשים שלה בחיים. ככל שיורדים, מגיעים למעשים חמורים יותר ולעונשים קשים יותר.'],
-  m3:       ['וירגיליוס', 'רואה את הדמויות שהרוח מעיפה שם, מתחתינו? בחייהן הן נתנו לתשוקה לסחוף אותן. עכשיו הרוח סוחפת אותן בלי סוף. כשתראה איך נשמה נענשת, לפעמים תוכל לנחש למה היא כאן.'],
-  m4:       ['וירגיליוס', 'ואנחנו מתחילים שם, ליד הסירה. הנהר הזה נקרא אכרון. על הגדה הזאת אנחנו עוד במבואה. המעגל הראשון מתחיל מעבר למים.'],
+  m1:       ['וירגיליוס', 'עצור רגע, דנטה. כל התהום הזאת היא הגיהנום: משפך ענק בתוך האדמה, שהולך ונעשה צר עד אגם קפוא בתחתית.'],
+  m2:       ['וירגיליוס', 'המדרגות הענקיות הן תשעת המעגלים. ככל שיורדים, המעשים חמורים יותר והעונשים קשים יותר.'],
+  m3:       ['וירגיליוס', 'רואה את הדמויות שהרוח מעיפה? בחייהן נסחפו אחרי התשוקה, ועכשיו הרוח סוחפת אותן. אנחנו מתחילים שם, ליד הסירה שעל נהר האכרון.'],
   v_vest:   ['וירגיליוס', 'אתה רואה את הדמויות שעומדות כאן כמו פסלים? אלה נשמות של אנשים שמתו. התקרב לאחת מהן. לפעמים די שתעמוד לידה כדי שהיא תתעורר ותספר לך למה הגיעה לכאן.'],
   soul1:    ['נשמה', 'כל החיים עמדתי בצד. גם כשיכולתי לעזור, לא עשיתי דבר. עכשיו אני תקוע כאן, מחוץ למעגלים.'],
   soul2:    ['נשמה', 'בחיים לא בחרתי ללכת אחרי שום דבר. עכשיו אני רודף אחרי הדגל הזה יום ולילה. אפילו לעצור אסור לי.'],
@@ -115,7 +114,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const $ = (id) => document.getElementById(id);
   const ray = new THREE.Ray(), DOWN = new THREE.Vector3(0, -1, 0), v = new THREE.Vector3(), v2 = new THREE.Vector3();
   let bvh = null;
-  const pos = g(84, 0.6, 0), keys = new Set();
+  const pos = p(79.5, 188, 0), keys = new Set();
   let yaw = 0, pitch = 0, bob = 0, moved = 0, coast = 0, crouch = 0, wakeT = -1;
   const stick = { x: 0, y: 0 }, touches = new Map();
 
@@ -191,7 +190,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const timers = []; const later = (t, fn) => timers.push({ t, fn });
   function ticking(dt) { for (let i = timers.length - 1; i >= 0; i--) if ((timers[i].t -= dt) <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   // a circle's stair stays shut until its task is done: you cannot go more than a metre below the floor you are on
-  let lockY = null, lockMsg = 0; const lastOk = new THREE.Vector3();
+  let lockY = null, lockMsg = 0, gateHold = false, cineWait = -1; const lastOk = new THREE.Vector3();
   function lock(floor) { lockY = Math.min(floor, pos.y) - 1.0; lastOk.copy(pos); }
   function blocked() { if (performance.now() < lockMsg) return; lockMsg = performance.now() + 4500; const el = $('gTask'), was = el.textContent, on = el.classList.contains('on');
     const msg = 'המדרגות סגורות. קודם משלימים את המשימה כאן'; el.textContent = msg; el.classList.add('on'); knock();
@@ -268,13 +267,15 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if ((stepAcc += went) > 0.78) { stepAcc = 0; footstep(); }
     }
     const gy = groundAt(pos.x, pos.y, pos.z); if (gy !== null) pos.y += (gy - pos.y) * Math.min(1, dt * 14);
-    if (lockY !== null && pos.y < lockY) { pos.copy(lastOk); blocked(); } else lastOk.copy(pos);
+    if (lockY !== null && pos.y < lockY) { pos.copy(lastOk); blocked(); }
+    else if (gateHold && pos.y > -1 && Math.hypot(pos.x, pos.z) < 75.2) pos.copy(lastOk);       // Virgil has not finished at the gate
+    else lastOk.copy(pos);
     camera.position.set(pos.x, pos.y + EYE - crouch + Math.sin(bob) * 0.028, pos.z);
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
   }
 
   // --- the guide: Virgil glides ahead and waits at each stop until you come near --------------------
-  const PATH = [[g(76.6, 0.9, 0), 1], [g(72.6, 0.2, 0), 0], [g(70, 0, stairY(70)), 1], [g(66, 0, stairY(66)), 0], [g(62, 0, stairY(62)), 1],
+  const PATH = [[p(79.4, 182, 0), 1], [p(79.3, 174, 0), 0], [p(79, 166, 0), 1], [p(78.8, 161, 0), 0], [p(78.4, 156.5, 0), 1], [g(76.6, 0.9, 0), 1], [g(72.6, 0.2, 0), 0], [g(70, 0, stairY(70)), 1], [g(66, 0, stairY(66)), 0], [g(62, 0, stairY(62)), 1],
     [g(58, 0, stairY(58)), 0], [g(55.2, 0, ZF), 1], [p(53.5, 148.6, ZF), 0], [p(53.35, 145.5, ZF), 1], [p(53.3, 141, ZF), 0],
     [p(53.3, 136, ZF), 1], [p(53.25, 130, ZF), 0], [p(53.25, 124.6, ZF), 1]];
   let guide = null, guideAt = 0, guideLight = null, guideHi = false, guideRide = false;
@@ -389,9 +390,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const find = (name) => kept.find((o) => o.userData.name === name) || kept.find((o) => (o.userData.name || '').startsWith(name + '_'));   // the beasts are Beast_Lion_01 ...
   const TRIG = [
     { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) liven(o, false); } } },
-    { at: g(76, 0, 0), r: 4.6, run: () => { title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1);
-        say('v_gate', null, true); say('d_gate', null, true); say('v_gate2', () => hud('רד במנהרה אל שפת התהום, והבט למטה'), true); } },
-    { at: g(55.4, 0, ZF), r: 2.6, run: () => { lock(ZF); startCine(); } },                 // the pit opens in front of you
+    { at: g(76, 0, 0), r: 30, run: () => { gateHold = true;
+        say('v_gate', () => { gateHold = false; title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1); }, true); say('d_gate', null, true); say('v_gate2', () => hud('רד במנהרה אל שפת התהום, והבט למטה'), true); } },
+    { at: g(55.4, 0, ZF), r: 2.6, run: () => { lock(ZF); cineWait = 0; } },                 // the pit opens in front of you
     { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); note(3); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF), () => { say('v_river'); hud('גש לסירה שעל שפת הנהר'); }); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
     { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) liven(c, false);
@@ -402,17 +403,23 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   // --- the view over the whole pit: while Virgil explains it, the camera leaves your eyes and glides over the funnel, the circles,
   //     the storm of the second circle and the river, then comes back to you. Space skips the flight (the talk goes on). ---
   let cine = null; const cEye = new THREE.Vector3(), cTar = new THREE.Vector3(), cA = new THREE.Vector3(), cB = new THREE.Vector3();
-  const SHOTS = [[p(41, 150, -1.5), p(0, 150, -54)], [p(24, 150, -8), p(46, 330, -30)], [p(39.5, 147, -13.2), p(46.3, 124, -18.3)], [p(46.8, 137, -8.2), p(51.85, 120, ZF)]];
   function startCine() {
-    phase = 'cine'; cine = { shot: 0, out: false }; keys.clear(); cEye.copy(camera.position); camera.getWorldDirection(cA); cTar.copy(cEye).addScaledVector(cA, 20);
+    phase = 'cine'; cine = { shot: 0, t: 0, st: 0, h: 0, out: false }; keys.clear(); cEye.copy(camera.position); camera.getWorldDirection(cA); cTar.copy(cEye).addScaledVector(cA, 20);
     title('המבוא', 'חוף האכרון'); hud(matchMedia('(pointer: coarse)').matches ? 'הבט אל התהום' : 'הבט אל התהום · רווח מחזיר אליך את המבט');
-    say('m1', () => { if (cine) cine.shot = 1; }, true); say('m2', () => { if (cine) cine.shot = 2; }, true); say('m3', () => { if (cine) cine.shot = 3; }, true);
-    say('m4', () => { if (cine) cine.out = true; note(2); hud('התקרב לאחת הדמויות במבואה'); say('v_vest', null, true); }, true);
+    const next = (n) => () => { if (cine) { cine.shot = n; cine.st = 0; } };
+    later(1.4, () => { say('m1', next(1), true); say('m2', next(2), true);
+      say('m3', () => { if (cine) cine.out = true; note(2); hud('התקרב לאחת הדמויות במבואה'); say('v_vest', null, true); }, true); });
   }
+  // the camera never stands still: it spirals down the funnel past the circles while the first two lines are spoken,
+  // then rides along the storm of the second circle and ends on the river and the boat
   function runCine(dt) {
+    cine.t += dt; cine.st += dt;
     if (cine.out) { cA.set(pos.x, pos.y + EYE, pos.z); cB.set(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)).multiplyScalar(20).add(cA); }
-    else { cA.copy(SHOTS[cine.shot][0]); cB.copy(SHOTS[cine.shot][1]); }
-    const k = 1 - Math.exp(-dt * (cine.out ? 2.4 : 0.75)); cEye.lerp(cA, k); cTar.lerp(cB, k);
+    else if (cine.shot < 2) { cine.h += dt * (cine.shot ? 1.25 : 1); const h = cine.h, y = Math.max(-44, -1 - 2.4 * h);
+      cA.copy(p(Math.max(10, 45 - 1.7 * h), 150 - 14 * h, y)); cB.set(0, y - 26, 0); }
+    else if (cine.st < 5.5) { cA.copy(p(39.5, 150 - 3.2 * cine.st, -13.2)); cB.copy(p(46.3, 128 - 3.2 * cine.st, -18.3)); }
+    else { const u = cine.st - 5.5; cA.copy(p(46.8 + 0.25 * u, 140 - 1.6 * u, -8.2)); cB.copy(p(51.85, 120, ZF)); }
+    const k = 1 - Math.exp(-dt * (cine.out ? 2.4 : 1.7) * Math.min(1, cine.t / 2.6)); cEye.lerp(cA, k); cTar.lerp(cB, k);      // it leaves your eyes slowly
     camera.position.copy(cEye); camera.lookAt(cTar);
     if (cine.out && cEye.distanceTo(cA) < 0.12) { cine = null; phase = 'walk'; }
   }
@@ -580,7 +587,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function upgrade(dt) { if ((upT += dt) < 1) return; upT = 0;
     for (const o of kept) { if (o.userData.hi || !o.visible || o === guide || !detail.has(o.userData.meshKey)) continue;
       const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; o.geometry = geo; o.material = mat.clone(); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
-  function stages(dt) { ticking(dt); upgrade(dt); if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
+  function stages(dt) { ticking(dt); upgrade(dt);
+    if (cineWait >= 0) { if (speaking || queue.length) cineWait = 0; else if ((cineWait += dt) > 1.1) { cineWait = -1; startCine(); } }
+    if (phase === 'limbo') runPoets(); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
 
   // --- the third circle: you come to under the rain; Cerberus bars the way until he is fed a fistful of mud (Inferno VI, 22-33) ---
   const L3 = S * -58; let cerb = null, mud = false, fed = false, c3On = false, nagged = false; const mounds = [], shots = [];
@@ -755,7 +764,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     setupQuest(); setupStages(); clearLane(); setupGuide(); bind();
     camera.near = 0.07; camera.fov = 68; camera.updateProjectionMatrix();
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
-    yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
+    { const t = p(79.4, 178, 0); yaw = Math.atan2(-(t.x - pos.x), -(t.z - pos.z)); }      // you stand among the trees; the gate is ahead, along the rim
     document.body.classList.add('playing');
     game.active = true; t0 = performance.now(); note(0); hud('לך אחרי וירגיליוס אל השער');
     if (CPS[cp]) {                          // pick up where the last visit stopped
@@ -771,6 +780,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   };
   game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, lockY, cine: cine && cine.shot, sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
