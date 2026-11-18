@@ -16,6 +16,7 @@ const LINES = {
   v_beasts: ['וירגיליוס', 'שלוש החיות לא יתנו לך לעלות אל ההר. אל תילחם בהן. חזור אל השער.'],
   gate:     ['השער', 'הניחו כל תקווה, אתם הנכנסים.'],
   v_tunnel: ['וירגיליוס', 'כאן משאירים כל פחד מאחור. רד בזהירות. אני לפניך.'],
+  v_view:   ['וירגיליוס', 'זה הגיהנום. תשעה מעגלים יורדים אל לב האדמה, ובכל אחד עונש שנולד מן החטא עצמו. הבט למטה, במעגל השני: הגופים המרחפים באוויר הם מי שנסחפו אחרי תשוקתם. עכשיו הסערה סוחפת אותם, לנצח.'],
   v_vest:   ['וירגיליוס', 'אלה מי שחיו בלי לבחור. השמיים דחו אותם, וגם התופת אינה רוצה בהם. הבט בהם, ועבור.'],
   soul1:    ['נשמה', 'לא עשיתי רע. לא עשיתי טוב. לא עשיתי דבר.'],
   soul2:    ['נשמה', 'רצתי אחרי כל דגל, ואף אחד מהם לא היה שלי.'],
@@ -38,7 +39,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   const ray = new THREE.Ray(), DOWN = new THREE.Vector3(0, -1, 0), v = new THREE.Vector3(), v2 = new THREE.Vector3();
   let bvh = null;
   const pos = g(84, 0.6, 0), keys = new Set();
-  let yaw = 0, pitch = 0, bob = 0, moved = 0;
+  let yaw = 0, pitch = 0, bob = 0, moved = 0, coast = 0;
   const stick = { x: 0, y: 0 }, touches = new Map();
 
   // --- collision: the rock, the stairs and the gate become one invisible mesh with a BVH ---------
@@ -112,14 +113,15 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
     const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 5.6 : 3.1) * dt;
     const sin = Math.sin(yaw), cos = Math.cos(yaw);
-    const dx = (-sin * f + cos * s) * speed, dz = (-cos * f - sin * s) * speed;
-    if (m > 0.05) {
+    const roll = coast * Math.min(1, dt * 2.6); coast -= roll;                          // the wheel: a push forward or back that eases out
+    const dx = (-sin * f + cos * s) * speed - sin * roll, dz = (-cos * f - sin * s) * speed - cos * roll;
+    if (m > 0.05 || Math.abs(roll) > 0.002) {
       const hit = tryMove(dx, dz);
       if (hit && hit !== true) {                                                   // slide along the wall
         const n = hit.face.normal; let nx = n.x, nz = n.z; const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
         const d = dx * nx + dz * nz; tryMove(dx - d * nx, dz - d * nz);
       }
-      aroundStatues(); keepClear(); moved += speed; bob += speed * 2.1;
+      aroundStatues(); keepClear(); moved += m > 0.05 ? speed : Math.abs(roll); bob += speed * 2.1;
     }
     const gy = groundAt(pos.x, pos.y, pos.z); if (gy !== null) pos.y += (gy - pos.y) * Math.min(1, dt * 14);
     camera.position.set(pos.x, pos.y + EYE + Math.sin(bob) * 0.028, pos.z);
@@ -136,7 +138,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     const src = kept.find((o) => o.userData.name === 'Virgil_Gate'); if (!src) return;
     src.updateMatrixWorld(true); const q = new THREE.Quaternion(), sc = new THREE.Vector3();
     src.matrixWorld.decompose(v, q, sc); scene.attach(src);
-    guide = src; guide.scale.copy(sc); guide.position.copy(PATH[0][0]); guide.frustumCulled = false;
+    guide = src; guide.userData.fwd = -1; guide.scale.copy(sc); guide.position.copy(PATH[0][0]); guide.frustumCulled = false;
     guideLight = new THREE.PointLight(0xa9bcff, 5, 7, 1.7); scene.add(guideLight);
   }
   function moveGuide(dt) {
@@ -148,13 +150,16 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     else face(guide, pos.x - guide.position.x, pos.z - guide.position.z, dt * 3);      // waiting: he looks back at you
     guideLight.position.copy(guide.position).y += 2.1;
   }
-  // the generated statues face +Z; turn one towards a direction, smoothly
-  function face(o, dx, dz, k) { const want = Math.atan2(dx, dz); let d = want - o.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.rotation.set(0, o.rotation.y + d * Math.min(1, k), 0); }
+  // which way a statue's face points was measured on the meshes in Blender: the souls look along +Z, Virgil along -Z (userData.fwd = -1)
+  const qq = new THREE.Quaternion(), eul = new THREE.Euler();
+  function face(o, dx, dz, k) { const f = o.userData.fwd || 1; let want = Math.atan2(dx * f, dz * f);
+    if (o.parent && o.parent !== scene) { o.parent.getWorldQuaternion(qq); want -= eul.setFromQuaternion(qq, 'YXZ').y; }   // a statue riding a turning boat
+    let d = want - o.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.rotation.set(0, o.rotation.y + d * Math.min(1, k), 0); }
 
   // --- voices and subtitles: one line at a time, never locking the controls -------------------------
   const queue = []; let speaking = null;
   // a new line from the guide replaces one that is still waiting its turn, so the talk never lags behind the place
-  function say(id, after, keep) { if (!keep) for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].keep) queue.splice(i, 1); queue.push({ id, after, keep }); }
+  function say(id, after, keep) { for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].keep) queue.splice(i, 1); queue.push({ id, after, keep }); }
   // souls do not wait in line: they speak from where they stand, quieter with distance, under the guide's voice
   const murmurs = [];
   function murmur(id, at) {
@@ -181,17 +186,46 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     speaking.audio = a;
   }
 
-  // --- awakenings: a statue stirs and lights up as you come near ------------------------------------
-  const woken = [];
-  function wake(at, obj, turn) {
-    const l = new THREE.PointLight(0xffd7a0, 0, 6, 1.8); l.position.copy(at).y += 2.2; scene.add(l);
-    woken.push({ l, t: 0, obj, turn, at });
+  // --- awakenings: a real statue leaves the frozen crowd. It turns to you, straightens, warms from marble to flesh, breathes
+  const WARM = new THREE.Color(1.0, 0.72, 0.56), alive = [], ZERO = new THREE.Matrix4().set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  function liven(o, turn) {
+    o.material = o.material.clone();
+    const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l);
+    alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l });
+    return o;
   }
+  // pull the statue nearest to a point out of its instanced batch, so it can move on its own
+  function extract(at, reach = 2.4) {
+    let best = null, bd = reach; const w = new THREE.Vector3();
+    for (const e of LOD) {
+      if (!/^Fig_/.test(e.key) || /Lying|Crawl|Flying/.test(e.key)) continue;
+      let moving = false; for (let q = e.low.parent; q; q = q.parent) if ((q.userData.name || '').startsWith('ANIM_')) moving = true;
+      if (moving) continue;
+      for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue;
+        w.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld); const d = Math.hypot(w.x - at.x, w.z - at.z);
+        if (Math.abs(w.y - at.y) < 1.5 && d < bd) { bd = d; best = { e, i }; } }
+    }
+    if (!best) return null;
+    const { e, i } = best, m = new THREE.Matrix4().fromArray(e.base, i * 16).premultiply(e.low.matrixWorld);
+    const [geo, mat] = detail.has(e.key) ? detail.get(e.key)[0] : [e.low.geometry, e.low.material];
+    const o = new THREE.Mesh(geo, mat.clone()), q = new THREE.Quaternion();
+    m.decompose(o.position, q, o.scale); o.rotation.set(0, new THREE.Euler().setFromQuaternion(q, 'YXZ').y, 0);
+    if (e.low.instanceColor) o.material.color.fromArray(e.low.instanceColor.array, i * 3);
+    e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, ZERO); e.low.instanceMatrix.needsUpdate = true;
+    o.userData.meshKey = e.key; scene.add(o); return o;
+  }
+  const souls = [];
   function stir(dt) {
-    for (const w of woken) {
-      w.t += dt; const k = Math.min(1, w.t / 0.5);
-      w.l.intensity = 5 * k * (1 - 0.5 * Math.min(1, Math.max(0, w.t - 0.5) / 2)) + Math.sin(w.t * 5) * 0.15;
-      if (w.obj) { w.obj.getWorldPosition(v); w.l.position.set(v.x, v.y + 2.2, v.z); if (w.turn) face(w.obj, pos.x - v.x, pos.z - v.z, dt * 4); }
+    for (const a of alive) {
+      a.t += dt; const k = Math.min(1, a.t / 0.9), e = k * k * (3 - 2 * k);
+      if (!a.hi && detail.has(a.o.userData.meshKey)) { const [geo, mat] = detail.get(a.o.userData.meshKey)[0];       // a living statue is always the detailed one
+        a.o.geometry = geo; a.o.material = mat.clone(); a.hi = true; }
+      a.o.material.color.copy(a.c0).lerp(WARM, 0.85 * e);
+      if (a.o.material.emissive) a.o.material.emissive.setRGB(0.11 * e, 0.05 * e, 0.025 * e);
+      a.o.scale.y = a.sy * (1 + 0.035 * e + 0.013 * Math.sin(a.t * 2.3) * e);           // straightens, then breathes
+      a.o.getWorldPosition(v);
+      if (a.turn) face(a.o, pos.x - v.x, pos.z - v.z, dt * 3.2);
+      a.l.position.set(v.x + (pos.x - v.x) * 0.35, v.y + 1.9, v.z + (pos.z - v.z) * 0.35); a.l.intensity = 2.4 * e;
     }
   }
 
@@ -208,13 +242,14 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   // --- what happens where ---------------------------------------------------------------------------
   const find = (name) => kept.find((o) => o.userData.name === name);
   const TRIG = [
-    { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) wake(o.getWorldPosition(new THREE.Vector3()), o, false); } } },
-    { at: g(76, 0, 0), r: 4.6, run: () => { say('gate'); note(1); wake(g(72.4, 0, 3.2)); } },
+    { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) liven(o, false); } } },
+    { at: g(76, 0, 0), r: 4.6, run: () => { say('gate'); note(1); } },
     { at: g(65.5, 0, stairY(65.5)), r: 2.6, run: () => say('v_tunnel') },
-    { at: g(54.4, 0, ZF), r: 2.6, run: () => { say('v_vest'); note(2); } },
-    { at: p(53.3, 143, ZF), r: 2.8, run: () => { murmur('soul1', p(54.0, 142.4, ZF)); note(3); wake(p(54.0, 142.4, ZF)); } },
-    { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { murmur('soul2', p(54.0, 132.8, ZF)); wake(p(54.0, 132.8, ZF)); } },
-    { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) wake(c.getWorldPosition(new THREE.Vector3()), c, true);
+    { at: g(55.4, 0, ZF), r: 2.6, run: () => say('v_view', null, true) },                 // the pit opens in front of you
+    { at: p(53.3, 147, ZF), r: 2.2, run: () => { say('v_vest', null, true); note(2); } },
+    { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
+    { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
+    { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) liven(c, false);
         say('charon', () => note(4), true); say('v_charon', null, true); say('v_end', end, true); } },
   ];
   function triggers() { for (const t of TRIG) if (!t.done && Math.hypot(t.at.x - pos.x, t.at.z - pos.z) < t.r && Math.abs(t.at.y - pos.y) < (t.top ? 1.2 : 3)) { t.done = true; t.run(); } }
@@ -245,11 +280,15 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
     $('gNote').addEventListener('click', () => $('gBook').classList.toggle('on'));
     $('gBook').addEventListener('click', () => $('gBook').classList.remove('on'));
+    el.addEventListener('wheel', (e) => { if (!game.active || game.ended) return; e.preventDefault(); coast = Math.max(-6, Math.min(6, coast - Math.sign(e.deltaY) * 1.4)); }, { passive: false });
     addEventListener('resize', () => { if (game.active) { camera.fov = 68; camera.updateProjectionMatrix(); } });
   }
 
   game.start = () => {
-    buildCollider(); clearLane(); setupGuide(); bind();
+    buildCollider();
+    // the two souls that will speak are taken out of the crowd first and stood by the rock wall, clear of the walking lane
+    for (const a of [142.4, 132.8]) { const o = extract(p(53.3, a, ZF), 3.2); if (o) { const q = p(54.0, a, 0); o.position.x = q.x; o.position.z = q.z; } souls.push(o); }
+    clearLane(); setupGuide(); bind();
     camera.near = 0.07; camera.fov = 68; camera.updateProjectionMatrix();
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
     yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
@@ -260,6 +299,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   };
   game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
