@@ -65,6 +65,20 @@ const LINES = {
   v_plutus: ['וירגיליוס', 'שתוק, זאב ארור. אכול את עצמך בזעמך.'],
   c4_task:  ['וירגיליוס', 'הם מגלגלים סלעים זה מול זה, לנצח. נסה להעיר אחד מהם. כל אחד.'],
   c4_none:  ['וירגיליוס', 'אי אפשר לזהות אף אחד מהם. חיים בלי הבחנה מחקו את פניהם.'],
+  c4_out:   ['וירגיליוס', 'נחזור. המדרגות יורדות מכאן אל הביצה.'],
+  // --- the fifth circle: the Styx and the gate of Dis ---
+  phlegyas: ['פלגיאס', 'הגעת סוף סוף, נשמה ארורה!'],
+  v_phleg:  ['וירגיליוס', 'פלגיאס, הפעם אתה צועק לשווא. נהיה שלך רק עד שנחצה את הביצה.'],
+  argenti:  ['פיליפו ארג\'נטי', 'מי אתה, שבא לפני זמנך?'],
+  v_arg:    ['וירגיליוס', 'הרחק מכאן, אל שאר הכלבים!'],
+  dis_in:   ['וירגיליוס', 'זו העיר דיס. מעבר לחומה הזאת מתחילה התופת התחתונה.'],
+  demons:   ['השדים', 'מי זה, שבלי מוות הולך בממלכת המתים?'],
+  furies:   ['הפוריות', 'תבוא מדוזה, ונהפוך אותו לאבן!'],
+  medusa:   ['וירגיליוס', 'הסתובב! אל תביט אל המגדל! מי שרואה אותה לא שב עוד למעלה.'],
+  stone:    ['וירגיליוס', 'אמרתי לך להסתובב. שוב: הפנה את מבטך!'],
+  angel_in: ['וירגיליוס', 'עכשיו הבט. מישהו בא על פני המים.'],
+  angel:    ['השליח', 'מדוע אתם מתנגדים לרצון שאי אפשר לעצור?'],
+  dis_open: ['וירגיליוס', 'השער פתוח. בוא.'],
 };
 // the notebook: the poem Dante is writing as he goes
 const NOTES = [
@@ -79,6 +93,8 @@ const NOTES = [
   ['Cerbero, fiera crudele e diversa', 'קרברוס, חיה אכזרית ומשונה', 'ו׳, 13'],
   ['Pape Satàn, pape Satàn aleppe!', 'קריאתו הסתומה של פלוטוס', 'ז׳, 1'],
   ['ad ogne conoscenza or li fa bruni', 'עכשיו הם כהים מכדי שיזהו אותם', 'ז׳, 54'],
+  ['Or se\' giunta, anima fella!', 'הגעת סוף סוף, נשמה ארורה!', 'ח׳, 18'],
+  ['Volgiti \'n dietro e tien lo viso chiuso', 'פנה לאחור, ועצום את עיניך', 'ט׳, 55'],
 ];
 
 export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM }) {
@@ -164,6 +180,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
     if (keys.has('ArrowLeft')) yaw += dt * 1.9; if (keys.has('ArrowRight')) yaw -= dt * 1.9;
     if (phase === 'sail') return ride(dt);
+    if (phase === 'styx') return ride2(dt);
     const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
     const speed = (wakeT >= 0 && wakeT < 2.6 ? 0 : keys.has('ShiftLeft') || keys.has('ShiftRight') ? 5.6 : 3.1) * dt;
     const sin = Math.sin(yaw), cos = Math.cos(yaw);
@@ -411,7 +428,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     spoke.l1 = speaker(p(50.2, 78, L1), 3.5, p(50.65, 78, 0)); spoke.l2 = speaker(p(50.2, 64, L1), 3.5, p(50.65, 64, 0));
     spoke.c2 = speaker(p(45.8, 86, L2), 3, p(45.9, 86, 0));
     game.lane = clearAlong(ROUTES.limboIn, 0.85) + clearAlong(arc(49.75, 58, 46, L1), 0.8) + clearAlong(arc(48.55, 56.5, 46, L1), 0.7) + clearAlong(ROUTES.limboOut, 0.85) + clearAlong(ROUTES.toMinos, 0.6) + clearAlong(ROUTES.toLovers, 0.75);
-    setupGluttony(); setupAvarice();
+    setupGluttony(); setupAvarice(); setupStyx();
     for (const n of ['Storm', 'Storm2']) if (ANIM[n]) ANIM[n].p.y += 1.5;                 // the storm flies over your head, not through it
     for (const n of ['Francesca', 'Paolo']) { const o = find(n); if (o) { scene.attach(o); lovers.push({ o, y: o.position.y }); } }
   }
@@ -505,9 +522,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   ROUTES.c4 = [...arc(38.3, 64, 46, L4)];
   function setupAvarice() {
     plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); }
-    game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4], 0.9, true);
+    game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], 0.9, true);
     // the two rows stand still in the game, so that the lane stays open; the boulders along it are cleared like the statues
-    const road = [...ROUTES.toPlutus, ...ROUTES.c4], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
+    const road = [...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
     for (const n of ['Pushers1', 'Pushers2']) { const a = ANIM[n]; if (!a) continue; delete ANIM[n]; a.o.updateMatrixWorld(true);
       a.o.traverse((c) => { if (!c.isInstancedMesh || lows.has(c)) return; let changed = false;
         for (let i = 0; i < c.count; i++) { c.getMatrixAt(i, m); q.setFromMatrixPosition(m).applyMatrix4(c.matrixWorld); if (q.lengthSq() < 1) continue;
@@ -534,7 +551,52 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 1.7 || tried.some((t) => t.distanceTo(q) < 2.5)) continue;
       tried.push(q); const l = new THREE.PointLight(0x9aa2b0, 0, 5, 1.8); l.position.set(q.x, q.y + 1.8, q.z); scene.add(l); dull.push({ l, t: 0 });   // a cold flicker, and nothing
       hud(`נסה להעיר את דוחפי הסלעים · ${tried.length}/3`);
-      if (tried.length === 3) { c4On = false; hud(''); say('c4_none', () => { note(10); end('סוף הפרק הראשון'); }, true); } break; }
+      if (tried.length === 3) { c4On = false; hud(''); say('c4_none', () => note(10), true); say('c4_out', leaveAvarice, true); } break; }
+  }
+
+  // --- the fifth circle: the stair ends in the marsh, so it is all done from Phlegyas' boat: the crossing, the shut gate of Dis,
+  //     Medusa (turn your eyes away), and the messenger who opens the gate with a touch (Inferno VIII-IX) ---
+  const L5 = S * -75.2, B2R = 35.6, B2_YAW = 0.1684, GATE_A = 55, DIS = p(33.9, GATE_A, L5 + 4);
+  const stair5 = Array.from({ length: 7 }, (_, i) => p(36.52, 84.4 + i * 1.0, L4 - 0.2 + (L5 - L4) * i / 6));    // top at 84 degrees, foot at 91
+  ROUTES.c4out = [...arc(38.3, 46, 82, L4), p(37.3, 83.8, L4), ...stair5];
+  let b2 = null, b2A = 92, b2Y = 0, sail2 = -1, disT = -1, medT = -1, angel = null, angelT = -1, doorT = -1, stoned = -1, glow = null, doors = [], argentiSaid = false;
+  function placeB2(a, out = 0) { b2A = a; const q = p(B2R + out, a, 0); b2.position.x = q.x; b2.position.z = q.z; b2.rotation.set(0, rad(a) - Math.PI / 2 - B2_YAW, 0); }
+  const seat2 = (u, out) => { const a = rad(b2A); return out.set(b2.position.x + Math.sin(a) * u, b2Y - 0.12, b2.position.z + Math.cos(a) * u); };
+  function setupStyx() {
+    b2 = ANIM.PhlegyasBoat && ANIM.PhlegyasBoat.o; if (b2) { delete ANIM.PhlegyasBoat; b2Y = b2.position.y; }
+    angel = find('Heavenly_Messenger'); if (angel) { scene.attach(angel); angel.visible = false; }
+    scene.traverse((o) => { if (o.isMesh && /^Dis_Gate_Door/.test(o.userData.name || '')) doors.push(o); });
+    glow = new THREE.PointLight(0x7dff8a, 0, 26, 1.4); glow.position.copy(p(33.9, GATE_A, -17.2)); scene.add(glow);
+  }
+  function leaveAvarice() { route('c4out'); TRIG.push({ at: p(36.5, 89.6, L5 + 0.4), r: 1.5, run: enterStyx }); }
+  function enterStyx() {
+    phase = 'styx'; save('styx'); title('הסטיקס', 'המעגל החמישי'); hud('');
+    if (b2) placeB2(91.5); sail2 = 0; yaw = rad(91.5) + Math.PI; pitch = -0.05;
+    if (guide && b2) { guideRide = true; seat2(0.35, tv); b2.attach(guide); guide.position.copy(b2.worldToLocal(tv.clone())); }
+    say('phlegyas', () => note(11), true); say('v_phleg', null, true);
+  }
+  function ride2(dt) {
+    if (!b2) return;
+    if (sail2 >= 0) { sail2 += dt; const total = (91.5 - 62.5) * Math.PI / 180 * B2R / 1.45, k = Math.min(1, Math.max(0, sail2 - 2.5) / total), e = k * k * (3 - 2 * k);
+      placeB2(91.5 + (62.5 - 91.5) * e, 0.75 * e);                                         // it stops a few metres short of the gate, out in the marsh, so the wall and the tower are in view
+      if (k > 0.42 && !argentiSaid) { argentiSaid = true; say('argenti', null, true); say('v_arg', null, true); }
+      if (k === 1) { sail2 = -1; disT = 0; say('dis_in', null, true); say('demons', null, true); say('furies', null, true); say('medusa', () => { medT = 0; hud('הסתובב! אל תביט אל המגדל'); }, true); } }
+    b2.position.y = b2Y + Math.sin(performance.now() / 770) * 0.03;
+    seat2(1.25, pos); pos.y += 0.05;
+    camera.position.set(pos.x, pos.y + EYE - 0.25, pos.z); camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    // Medusa: five seconds of rising green light; when it peaks you must be looking away from the tower, and stay so for three more
+    const gx = DIS.x - pos.x, gz = DIS.z - pos.z, gl = Math.hypot(gx, gz) || 1, facing = (-Math.sin(yaw) * gx - Math.cos(yaw) * gz) / gl > -0.1;
+    if (medT >= 0) { medT += dt; glow.intensity = 60 * Math.min(1, medT / 5) * (0.85 + 0.15 * Math.sin(medT * 9));
+      if (medT > 5 && facing) { medT = -1; stoned = 0; hud(''); }
+      else if (medT > 8) { medT = -1; glow.intensity = 0; hud(''); note(12); say('angel_in', () => { angelT = 0; if (angel) { angel.visible = true; liven(angel, false); } }, true); } }
+    if (stoned >= 0) { stoned += dt; const f = $('gFade'); f.style.background = '#8d8d88'; f.style.opacity = Math.min(1, stoned / 0.9) * (stoned > 2.6 ? Math.max(0, 1 - (stoned - 2.6) / 1.2) : 1);   // you turn to stone, then it is undone
+      glow.intensity = Math.max(0, glow.intensity - dt * 40);
+      if (stoned > 3.8) { stoned = -1; f.style.background = '#000'; f.style.opacity = 0; say('stone', () => { medT = 0; hud('הסתובב! אל תביט אל המגדל'); }, true); } }
+    if (angelT >= 0 && angel) { angelT += dt; const k = Math.min(1, angelT / 6), e = k * k * (3 - 2 * k), q = p(35.4 - 0.75 * e, 80 - (80 - 55.6) * e, 0);
+      angel.position.x = q.x; angel.position.z = q.z;
+      if (k === 1) { angelT = -1; say('angel', () => { doorT = 0; }, true); } }
+    if (doorT >= 0) { doorT += dt; for (const d of doors) d.position.y -= dt * 0.9;                                    // the doors sink away
+      if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('dis_open', () => end('סוף הפרק הראשון'), true); } }
   }
 
   function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -568,7 +630,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
 
   // where a saved game picks up: how many notebook lines you already hold, where you stand, what begins
-  const CPS = { limbo: [5, p(50.5, 89.3, L1), enterLimbo], lust: [6, p(46.9, 90.0, L2), enterLust], gluttony: [8, p(42.2, 91.2, L3), () => enterGluttony(false)], avarice: [9, p(39.9, 89.2, L4), enterAvarice] };
+  const CPS = { limbo: [5, p(50.5, 89.3, L1), enterLimbo], lust: [6, p(46.9, 90.0, L2), enterLust], gluttony: [8, p(42.2, 91.2, L3), () => enterGluttony(false)], avarice: [9, p(39.9, 89.2, L4), enterAvarice], styx: [11, p(36.5, 90.3, L5), enterStyx] };
   game.saved = () => { try { return localStorage.getItem('inferno_cp'); } catch (e) { return null; } };
   game.start = (cp) => {
     buildCollider(); setupBoat();
@@ -593,6 +655,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   };
   game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }

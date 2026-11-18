@@ -87,6 +87,26 @@
   "plutus": {
    "character": "פלוטוס",
    "brief": "קול צרוד וחנוק, מקרקר. מילים חסרות פשר, בזעם."
+  },
+  "phlegyas": {
+   "character": "פלגיאס",
+   "brief": "גבר זועם, צועק בניצחון ואחר כך מתאכזב."
+  },
+  "argenti": {
+   "character": "פיליפו ארג'נטי",
+   "brief": "גבר יהיר, קול מלא בוץ וכעס."
+  },
+  "demons": {
+   "character": "השדים בשער",
+   "brief": "כמה קולות יחד, צורמים ולועגים."
+  },
+  "furies": {
+   "character": "הפוריות",
+   "brief": "שלוש נשים צורחות יחד, קול חד וגבוה."
+  },
+  "angel": {
+   "character": "השליח מן השמיים",
+   "brief": "קול צלול, שקט וסמכותי. בלי מאמץ."
   }
  },
  "lines": {
@@ -431,6 +451,97 @@
    "cast": "virgil",
    "character": "וירגיליוס",
    "text": "אי אפשר לזהות אף אחד מהם. חיים בלי הבחנה מחקו את פניהם.",
+   "recorded": false
+  },
+  "c4_out": {
+   "file": "voice/c4_out.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "נחזור. המדרגות יורדות מכאן אל הביצה.",
+   "recorded": false
+  },
+  "phlegyas": {
+   "file": "voice/phlegyas.mp3",
+   "cast": "phlegyas",
+   "character": "פלגיאס",
+   "text": "הגעת סוף סוף, נשמה ארורה!",
+   "recorded": false
+  },
+  "v_phleg": {
+   "file": "voice/v_phleg.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "פלגיאס, הפעם אתה צועק לשווא. נהיה שלך רק עד שנחצה את הביצה.",
+   "recorded": false
+  },
+  "argenti": {
+   "file": "voice/argenti.mp3",
+   "cast": "argenti",
+   "character": "פיליפו ארג'נטי",
+   "text": "מי אתה, שבא לפני זמנך?",
+   "recorded": false
+  },
+  "v_arg": {
+   "file": "voice/v_arg.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הרחק מכאן, אל שאר הכלבים!",
+   "recorded": false
+  },
+  "dis_in": {
+   "file": "voice/dis_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "זו העיר דיס. מעבר לחומה הזאת מתחילה התופת התחתונה.",
+   "recorded": false
+  },
+  "demons": {
+   "file": "voice/demons.mp3",
+   "cast": "demons",
+   "character": "השדים בשער",
+   "text": "מי זה, שבלי מוות הולך בממלכת המתים?",
+   "recorded": false
+  },
+  "furies": {
+   "file": "voice/furies.mp3",
+   "cast": "furies",
+   "character": "הפוריות",
+   "text": "תבוא מדוזה, ונהפוך אותו לאבן!",
+   "recorded": false
+  },
+  "medusa": {
+   "file": "voice/medusa.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "הסתובב! אל תביט אל המגדל! מי שרואה אותה לא שב עוד למעלה.",
+   "recorded": false
+  },
+  "stone": {
+   "file": "voice/stone.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "אמרתי לך להסתובב. שוב: הפנה את מבטך!",
+   "recorded": false
+  },
+  "angel_in": {
+   "file": "voice/angel_in.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "עכשיו הבט. מישהו בא על פני המים.",
+   "recorded": false
+  },
+  "angel": {
+   "file": "voice/angel.mp3",
+   "cast": "angel",
+   "character": "השליח מן השמיים",
+   "text": "מדוע אתם מתנגדים לרצון שאי אפשר לעצור?",
+   "recorded": false
+  },
+  "dis_open": {
+   "file": "voice/dis_open.mp3",
+   "cast": "virgil",
+   "character": "וירגיליוס",
+   "text": "השער פתוח. בוא.",
    "recorded": false
   }
  }
