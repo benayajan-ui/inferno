@@ -601,30 +601,38 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (loversOn && Math.abs(pos.y - L2) < 1.5) {                                          // you find them by looking: hold your eyes on the pair for a moment
       o.getWorldPosition(v); const dx = v.x - camera.position.x, dy = v.y - camera.position.y, dz = v.z - camera.position.z, far = Math.hypot(dx, dy, dz) || 1;
       camera.getWorldDirection(tv); gaze = (tv.x * dx + tv.y * dy + tv.z * dz) / far > 0.962 && far < 45 ? gaze + dt : 0;
-      if (gaze > 0.7 || d < 3.4) { loversOn = false; hud(''); for (const l of lovers) liven(l.o, false); faintT = -2; say('d_call', startFilm, true); } }
+      if (gaze > 0.7 || d < 3.4) { loversOn = false; hud(''); for (const l of lovers) liven(l.o, false); faintT = -2; say('d_call', () => startFilm('lovers', () => { note(6); say('d_faint', () => { note(7); faintT = 0; }, true); }), true); } }
     if (faintT === -2) loversDown = Math.min(1.75, loversDown + dt * 0.9);
     if (faintT >= 0) { faintT += dt; $('gFade').style.opacity = Math.min(1, faintT / 2.6); pitch = Math.min(1.2, pitch + dt * 0.35);
       if (faintT > 3.2) { faintT = -1; enterGluttony(true); } }
   }
-  // --- who the two are is told as a short painted film that takes over the screen (Space or a tap skips it); then the game goes on ---
-  let film = null; const FILM_TEXT = LINES.francesca[1].split(/(?<=\.)\s+/), FILM_LEN = FILM_TEXT.join('').length;
-  function startFilm() {
-    const el = $('gFilm'), prev = phase; phase = 'film'; keys.clear(); document.body.classList.add('film'); film = { el, prev, t: 0, done: false, silent: false };
+  // --- short painted films that take over the screen at three moments: the dark wood before the game, the lovers' story, the gate of Dis
+  //     opening at the end. Space or a tap skips one; if a film cannot play, its words still run their time. ---
+  const FILMS = {
+    intro:  { src: 'film/intro.mp4', who: 'דנטה', text: 'באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.', t0: 0.8, talk: 5.2, len: 9.2 },
+    lovers: { src: 'film/lovers.mp4', who: LINES.francesca[0], text: LINES.francesca[1], t0: 0.4, talk: 16.8, len: 18.1 },
+    dis:    { src: 'film/dis.mp4', who: '', text: '', t0: 0, talk: 0, len: 5.2 },
+  };
+  let film = null;
+  function startFilm(name, after) {
+    const el = $('gFilm'), def = FILMS[name], prev = phase; phase = 'film'; keys.clear(); document.body.classList.add('film');
+    film = { el, def, prev, after, t: 0, done: false, silent: false, parts: def.text ? def.text.split(/(?<=[.,])\s+/) : [] };
+    if (!el.src.endsWith(def.src)) el.src = def.src;
     el.muted = !sound.on; try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
-    const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });        // if it cannot play, the words still run their time
+    const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });
   }
   function runFilm(dt) {
-    film.t += dt; const t = film.silent ? film.t : film.el.currentTime; let acc = 0, cur = '';
-    for (const part of FILM_TEXT) { if (t >= 0.4 + 16.8 * acc / FILM_LEN) cur = part; acc += part.length; }
-    if (t > 17.6) cur = '';
-    $('gWho').textContent = LINES.francesca[0]; $('gText').textContent = cur; $('gSub').classList.toggle('on', !!cur);
+    film.t += dt; const def = film.def, t = film.silent ? film.t : film.el.currentTime, total = def.text.length || 1; let acc = 0, cur = '';
+    for (const part of film.parts) { if (t >= def.t0 + def.talk * acc / total) cur = part; acc += part.length + 1; }
+    if (t > def.t0 + def.talk + 0.6) cur = '';
+    $('gWho').textContent = def.who; $('gText').textContent = cur; $('gSub').classList.toggle('on', !!cur);
     film.el.style.opacity = Math.min(1, film.t / 0.8);                                         // the fade is driven here, not left to a style transition
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
-    if (film.done || film.t > 21 || (film.silent && film.t > 18.2)) endFilm();
+    if (film.done || film.t > def.len + 3 || (film.silent && film.t > def.len)) endFilm();
   }
   function endFilm() {
-    if (!film) return; film.el.pause(); film.el.style.opacity = ''; film.el.classList.remove('on'); document.body.classList.remove('film'); $('gSub').classList.remove('on'); phase = film.prev; film = null;
-    note(6); say('d_faint', () => { note(7); faintT = 0; }, true);
+    if (!film) return; const after = film.after; film.el.pause(); film.el.style.opacity = ''; film.el.classList.remove('on'); document.body.classList.remove('film'); $('gSub').classList.remove('on');
+    phase = film.prev; film = null; if (after) after();
   }
   addEventListener('keydown', (e) => { if (e.code === 'Space' && film && film.t > 1) endFilm(); });
   $('gFilm').addEventListener('pointerdown', () => { if (film && film.t > 1) endFilm(); });
@@ -762,7 +770,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (stoned > 3.8) { stoned = -1; f.style.background = '#000'; f.style.opacity = 0; hud('הסתובב והפנה את הגב למגדל'); say('stone', () => { medT = 0; }, true); } }
     if (angelT >= 0 && angel) { angelT += dt; const k = Math.min(1, angelT / 6), e = k * k * (3 - 2 * k), q = p(35.4 - 0.75 * e, 80 - (80 - 55.6) * e, 0);
       angel.position.x = q.x; angel.position.z = q.z;
-      if (k === 1) { angelT = -1; hud(''); say('angel', () => { doorT = 0; }, true); } }
+      if (k === 1) { angelT = -1; hud(''); say('angel', () => startFilm('dis', () => { for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); }), true); } }
     if (doorT >= 0) { doorT += dt; for (const d of doors) d.position.y -= dt * 0.9;                                    // the doors sink away
       if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); } }
   }
@@ -822,7 +830,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       yaw = rad(90) + Math.PI;                                                          // both roads start towards the smaller angles
       CPS[cp][2]();
       if (guide) guide.position.copy(PATH[0][0]);
-    } else { say('v_start'); title('היער האפל', 'בחצי דרכם של חיינו'); }
+    } else startFilm('intro', () => { say('v_start'); title('היער האפל', 'בחצי דרכם של חיינו'); });
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
