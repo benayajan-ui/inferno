@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>משחק · תהום הגיהנום</title>
+<meta name="description" content="מסע תלת־ממדי במפת הגיהנום של בוטיצ'לי, לפי התופת של דנטה">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bona+Nova:wght@700&family=Frank+Ruhl+Libre:wght@400;500;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#f3e8d4; --dim:#bba98d; --gold:#e3a83c; --red:#b8402c; --panel:rgba(16,10,8,.84); --line:rgba(227,168,60,.26); }
+  * { box-sizing:border-box; }
+  /* open-licence fonts (SIL OFL, Google Fonts): Bona Nova for titles, Frank Ruhl Libre for text */
+  html,body { margin:0; height:100%; background:#080605; color:var(--ink); overflow:hidden;
+              font-family:"Frank Ruhl Libre","David","Times New Roman",serif; }
+  canvas { display:block; touch-action:none; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  header { position:fixed; inset:0 0 auto 0; padding:14px 18px 26px; pointer-events:none; z-index:2;
+           background:linear-gradient(#080605e8,#08060500); }
+  h1 { margin:0; font-family:"Bona Nova","David",serif; font-size:30px; font-weight:700; letter-spacing:.01em; color:#f7e9c9; }
+  header p { margin:2px 0 0; font-size:13px; color:var(--dim); }
+
+  /* station rail */
+  #rail { position:fixed; top:78px; right:12px; bottom:84px; width:206px; overflow-y:auto; padding:6px; z-index:3;
+          background:var(--panel); border:1px solid var(--line); border-radius:10px; backdrop-filter:blur(6px); scrollbar-width:thin; }
+  #rail button { display:flex; gap:8px; align-items:baseline; width:100%; margin:0 0 2px; padding:6px 8px; text-align:right;
+                 font-size:14px; background:transparent; border:1px solid transparent; border-radius:6px; }
+  #rail button i { font-style:normal; font-size:11px; color:var(--dim); min-width:16px; }
+  #rail button:hover, #rail button:focus-visible { border-color:var(--line); background:rgba(227,168,60,.1); outline:none; }
+  #rail button[aria-current="true"] { border-color:var(--gold); color:var(--gold); }
+
+  /* station text: floating over the scene, no panel; a soft dark haze and shadows keep it readable */
+  #card { position:fixed; left:30px; bottom:96px; width:min(450px,calc(100vw - 280px)); max-height:calc(100vh - 196px); z-index:3;
+          display:flex; flex-direction:column; transition:opacity .5s, transform .5s;
+          text-shadow:0 1px 2px #000, 0 0 9px rgba(0,0,0,.95), 0 0 24px rgba(0,0,0,.85); }
+  #card::before { content:""; position:absolute; inset:-80px -130px -120px -70px; z-index:-1; pointer-events:none;
+          background:radial-gradient(closest-side, rgba(6,4,3,.86), rgba(6,4,3,.66) 62%, rgba(6,4,3,0)); }
+  #card.away { opacity:0; transform:translateY(14px); pointer-events:none; }
+  body:has(#load) #card { visibility:hidden; }            /* nothing shows through the opening screen */
+  #card .head { display:flex; align-items:flex-start; gap:10px; padding:0 0 12px; }
+  #card h2 { margin:0; font-family:"Bona Nova","David",serif; font-weight:700; font-size:clamp(38px,4.6vw,58px); line-height:1.02; color:#f7e9c9; }
+  #card h2::after { content:""; display:block; width:84px; height:2px; margin-top:14px; background:linear-gradient(to left, var(--gold), rgba(227,168,60,0)); }
+  #card .sub { display:block; font-size:14px; color:var(--gold); font-weight:700; margin-bottom:6px; letter-spacing:.05em; }
+  #cText p + p { margin-top:9px; }
+  #cParts { display:flex; flex-wrap:wrap; gap:4px; padding:0 0 12px; }
+  #cParts[hidden] { display:none; }
+  #card.folded #cParts { display:none; }
+  #cParts button { min-width:28px; height:28px; border:1px solid transparent; background:rgba(8,5,4,.45); border-radius:999px; padding:0 9px; font-size:14px; color:var(--gold); }
+  #cParts button:hover { border-color:var(--gold); }
+  #cParts button[aria-current] { background:var(--gold); color:#1a0f08; font-weight:700; text-shadow:none; }
+  #cText ol.pick li { cursor:pointer; border-radius:4px; }
+  #cText ol.pick li:hover { color:var(--gold); }
+  #cText ol { margin:9px 0 0; padding-inline-start:24px; font-size:16.5px; line-height:1.5; }
+  #cText ol li::marker { color:var(--gold); font-weight:700; }
+  #card .head { cursor:pointer; outline:none; }
+  #card .head:hover h2, #card .head:focus-visible h2 { color:#fff6de; }
+  #fold { padding:3px 10px; font-size:13px; color:var(--gold); border:1px solid var(--line); border-radius:999px; background:rgba(8,5,4,.45); white-space:nowrap; }
+  #card .head:hover #fold, #card .head:focus-visible #fold { border-color:var(--gold); }
+  #card.folded .head { padding-bottom:0; }
+  #card.folded h2::after { display:none; }
+  #card.folded::before { inset:-50px -90px -60px -60px; }
+  #card .body { overflow-y:auto; padding:0 0 4px; padding-inline-end:10px; scrollbar-width:thin; scrollbar-color:rgba(227,168,60,.45) transparent; }
+  #card.folded .body { display:none; }
+  #card figure { margin:16px 0 2px; }
+  #card figure img { display:block; width:100%; height:112px; object-fit:cover; border-radius:3px; border:1px solid var(--line); cursor:zoom-in; box-shadow:0 6px 22px rgba(0,0,0,.6); }
+  #card figcaption { font-size:12px; color:var(--dim); margin-top:5px; }
+  #card p { margin:0; font-size:17px; line-height:1.55; }
+  #card blockquote { margin:0 0 16px; padding:0; padding-inline-start:14px; border-inline-start:2px solid var(--gold); }
+  #card blockquote .it { display:block; direction:ltr; text-align:right; font-family:"Cormorant Garamond",Georgia,serif; font-style:italic; font-size:22px; line-height:1.25; color:#f3d998; }
+  #card blockquote .he { display:block; font-size:17px; margin-top:6px; }
+  #card blockquote cite { display:block; font-style:normal; font-size:12.5px; color:var(--dim); margin-top:4px; }
+  #card .look { margin-top:12px; font-size:14.5px; color:var(--dim); }
+
+  /* journey controls */
+  #ctl { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); z-index:4; display:flex; align-items:center; gap:8px;
+         padding:8px 10px; background:var(--panel); border:1px solid var(--line); border-radius:999px; backdrop-filter:blur(8px); }
+  #ctl button { border:1px solid var(--line); background:transparent; border-radius:999px; padding:7px 14px; font-size:14px; white-space:nowrap; }
+  #ctl button:hover { background:rgba(227,168,60,.12); }
+  #play { background:var(--gold) !important; color:#1a0f08 !important; border-color:var(--gold) !important; font-weight:700; min-width:128px; }
+  #dots { display:flex; gap:4px; direction:rtl; padding:0 4px; }
+  #dots b { width:7px; height:7px; border-radius:50%; background:rgba(243,232,212,.22); transition:background .3s, transform .3s; }
+  #dots b.on { background:var(--gold); transform:scale(1.35); }
+  #dots b.done { background:rgba(227,168,60,.55); }
+  #menu { display:none; }
+  #hint { position:fixed; left:14px; top:78px; font-size:12px; color:var(--dim); z-index:2; pointer-events:none; }
+  #fps { position:fixed; left:14px; top:100px; font:12px monospace; color:#9f9; z-index:5; }
+
+  #load { position:fixed; inset:0; z-index:9; display:grid; place-items:center; background:#080605; text-align:center; transition:opacity .8s; }
+  #load h2 { font-family:"Bona Nova","David",serif; font-weight:700; font-size:clamp(44px,7vw,72px); line-height:1; margin:0 0 10px; color:#f7e9c9; }
+  #load p { margin:0; color:var(--dim); font-size:14px; }
+  #bar { width:min(320px,70vw); height:3px; margin:18px auto 0; background:#2a1e17; border-radius:2px; overflow:hidden; }
+  #bar i { display:block; height:100%; width:0; background:var(--gold); transition:width .2s; }
+  #load .go { display:none; gap:10px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
+  #load.ready { background:radial-gradient(ellipse at center, rgba(8,6,5,.62), rgba(8,6,5,.94)); }
+  #load.ready .go { display:flex; } #load.ready #bar, #load.ready #msg { display:none; }
+  #load .lead { max-width:440px; margin:10px auto 0; color:var(--dim); font-size:15px; line-height:1.55; padding:0 18px; }
+  #load .go button { border:1px solid var(--line); background:transparent; border-radius:999px; padding:10px 22px; font-size:16px; }
+  #load .go button.main { background:var(--gold); color:#1a0f08; border-color:var(--gold); font-weight:700; }
+  #load em { display:block; font-family:"Cormorant Garamond",Georgia,serif; font-size:19px; color:var(--gold); margin-top:14px; direction:ltr; }
+  #credit { position:fixed; left:14px; bottom:16px; z-index:4; border:0; background:none; color:var(--dim); font-size:12px; text-decoration:underline; padding:4px; }
+  dialog { max-width:min(520px,92vw); background:#120c0a; color:var(--ink); border:1px solid var(--line); border-radius:12px; padding:18px 20px; font-size:14px; line-height:1.6; }
+  dialog::backdrop { background:rgba(0,0,0,.7); }
+  dialog h2 { margin:0 0 8px; font-size:19px; } dialog ul { margin:6px 0; padding-inline-start:18px; } dialog a { color:var(--gold); }
+  dialog button { margin-top:10px; border:1px solid var(--line); background:transparent; border-radius:999px; padding:6px 16px; }
+  #box { position:fixed; inset:0; z-index:10; display:none; background:rgba(0,0,0,.9); cursor:zoom-out; padding:20px; overflow:auto; }
+  #box.on { display:grid; }
+  #box img { margin:auto; max-width:100%; max-height:88vh; border-radius:6px; }
+  #box.full img { cursor:zoom-in; }
+  #box.full.zoom img { max-width:none; max-height:none; width:2200px; cursor:zoom-out; }
+  #box span { position:fixed; bottom:0; inset-inline:0; text-align:center; font-size:13px; color:var(--dim); padding:10px 12px 14px; background:linear-gradient(transparent, rgba(0,0,0,.85)); pointer-events:none; }
+  #boxX { position:fixed; top:14px; left:14px; z-index:11; display:none; border:1px solid var(--line); background:rgba(18,12,10,.85); border-radius:999px; padding:7px 16px; font-size:14px; }
+  #box.on + #boxX { display:block; }
+  #snd { position:fixed; left:164px; bottom:16px; z-index:4; border:0; background:none; color:var(--dim); font-size:12px; text-decoration:underline; padding:4px; }
+  #snd[aria-pressed="true"] { color:var(--gold); }
+  #paint { position:fixed; left:78px; bottom:16px; z-index:4; border:0; background:none; color:var(--dim); font-size:12px; text-decoration:underline; padding:4px; }
+
+  @media (max-width:720px) {
+    h1 { font-size:18px; } header p { display:none; }
+    #rail { top:auto; right:8px; left:8px; bottom:70px; width:auto; max-height:46vh; display:none; z-index:6; }
+    #rail.open { display:block; }
+    #card { left:14px; right:14px; width:auto; bottom:70px; max-height:42vh; }
+    #card::before { inset:-60px -14px -80px; background:linear-gradient(rgba(6,4,3,0), rgba(6,4,3,.82) 26%, rgba(6,4,3,.82)); }
+    #card.folded::before { inset:-40px -14px -80px; }
+    #card h2 { font-size:34px; } #card p, #card blockquote .he { font-size:15.5px; } #card blockquote .it { font-size:18px; }
+    #card figure img { height:84px; }
+    #ctl { bottom:10px; gap:5px; padding:6px; max-width:calc(100vw - 12px); }
+    #ctl button { padding:7px 10px; font-size:13px; }
+    #play { min-width:0; }
+    #dots, #hint { display:none; }
+    #credit { bottom:auto; top:14px; left:10px; }
+    #paint { bottom:auto; top:14px; left:72px; }
+    #snd { bottom:auto; top:14px; left:158px; }
+    #menu { display:block; }
+  }
+  @media (prefers-reduced-motion: reduce) { #card, #load { transition:none; } }
+
+  /* --- game page only --- */
+  #rail, #card, #ctl, #hint, #credit, #paint { display:none !important; }
+  body.playing header { display:none; }
+  #load .keys { margin:14px auto 0; max-width:460px; font-size:13px; line-height:1.7; color:var(--dim); padding:0 18px; }
+  #load .back { align-self:center; color:var(--dim); font-size:14px; }
+  #gSub { position:fixed; left:50%; bottom:7vh; transform:translate(-50%,8px); width:min(720px,92vw); text-align:center; z-index:5; opacity:0; transition:opacity .35s, transform .35s; pointer-events:none;
+          text-shadow:0 1px 2px #000, 0 0 10px rgba(0,0,0,.95), 0 0 26px rgba(0,0,0,.9); }
+  #gSub.on { opacity:1; transform:translate(-50%,0); }
+  #gSub2 { position:fixed; left:50%; bottom:calc(7vh + 92px); transform:translateX(-50%); width:min(620px,88vw); text-align:center; z-index:5; opacity:0; transition:opacity .35s; pointer-events:none; font-style:italic; color:#d9cbb0;
+           text-shadow:0 1px 2px #000, 0 0 10px rgba(0,0,0,.95), 0 0 26px rgba(0,0,0,.9); }
+  #gSub2.on { opacity:.92; }
+  #gWho2 { font-size:12.5px; color:var(--dim); margin-inline-end:8px; font-style:normal; } #gText2 { font-size:clamp(15px,1.8vw,19px); }
+  #gWho { display:block; font-size:14px; font-weight:700; color:var(--gold); letter-spacing:.06em; margin-bottom:3px; }
+  #gText { font-size:clamp(18px,2.3vw,25px); line-height:1.4; }
+  #gNote { position:fixed; top:14px; right:16px; z-index:5; display:none; border:1px solid var(--line); background:rgba(8,5,4,.55); border-radius:999px; padding:6px 16px; font-size:14px; color:var(--gold); transition:background .4s, color .4s; }
+  body.playing #gNote, body.playing #gHint { display:block; }
+  #gNote.new { background:var(--gold); color:#1a0f08; }
+  #gHint { position:fixed; top:16px; left:16px; z-index:5; display:none; font-size:12.5px; color:var(--dim); text-shadow:0 0 8px #000; transition:opacity 1.2s; pointer-events:none; }
+  #gHint.seen:not(.paused) { opacity:0; }
+  #gHint.paused b { display:inline; } #gHint b { display:none; color:var(--gold); font-weight:700; }
+  #snd { display:block !important; top:52px; bottom:auto; left:16px; } body:not(.playing) #snd { display:none !important; }
+  #gBook { position:fixed; inset:0; z-index:7; display:none; place-items:center; background:rgba(0,0,0,.72); padding:20px; }
+  #gBook.on { display:grid; }
+  #gBook > div { width:min(520px,94vw); max-height:86vh; overflow:auto; background:#efe2c4; color:#2a1a10; border-radius:4px; padding:26px 28px; box-shadow:0 20px 60px #000; }
+  #gBook h2 { margin:0 0 4px; font-family:"Bona Nova","David",serif; font-size:30px; } #gBook p { margin:0 0 14px; font-size:13px; color:#6b5540; }
+  #gList { list-style:none; margin:0; padding:0; } #gList li { padding:11px 0; border-top:1px solid rgba(60,40,20,.2); }
+  #gList i { display:block; direction:ltr; text-align:right; font-family:"Cormorant Garamond",Georgia,serif; font-size:19px; }
+  #gList span { display:block; font-size:16px; margin-top:3px; } #gList small { color:#806a52; } #gList li.empty { color:#a8957a; text-align:center; letter-spacing:.3em; }
+  #gEnd { position:fixed; inset:0; z-index:8; display:none; place-items:center; text-align:center; background:radial-gradient(ellipse at center, rgba(8,6,5,.7), rgba(8,6,5,.96)); }
+  #gEnd.on { display:grid; }
+  #gEnd h2 { font-family:"Bona Nova","David",serif; font-size:clamp(38px,6vw,60px); margin:0 0 8px; color:#f7e9c9; } #gEnd p { color:var(--dim); margin:0 0 20px; }
+  #gEnd a, #gEnd button { display:inline-block; margin:0 5px; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:999px; padding:9px 20px; font-size:15px; text-decoration:none; }
+  #gEnd button { background:var(--gold); color:#1a0f08; border-color:var(--gold); font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>תהום הגיהנום</h1>
+  <p>מסע תלת־ממדי במפת הגיהנום של סנדרו בוטיצ'לי, לפי "התופת" של דנטה</p>
+</header>
+<div id="hint">גרירה: מבט מסביב · גלגלת: זום · לחיצה ימנית: הזזה</div>
+<nav id="rail" aria-label="תחנות המסע"></nav>
+<article id="card" class="away" aria-live="polite">
+  <div class="head" id="head" role="button" tabindex="0" aria-expanded="true" title="לחיצה מקפלת או פותחת את הפירוט"><div style="flex:1"><span class="sub" id="cSub"></span><h2 id="cName"></h2></div><span id="fold" aria-hidden="true">מזער</span></div>
+  <div id="cParts" role="group" aria-label="תתי־פרקים" hidden></div>
+  <div class="body">
+    <blockquote id="cQ"><span class="it" lang="it" id="cIt"></span><span class="he" id="cHe"></span><cite id="cRef"></cite></blockquote>
+    <div id="cText"></div>
+    <p class="look" id="cLook"></p>
+    <figure><img id="cImg" alt=""><figcaption>הקטע המתאים בציור של בוטיצ'לי. לחיצה מגדילה.</figcaption></figure>
+  </div>
+</article>
+<div id="ctl">
+  <button id="menu" type="button">תחנות</button>
+  <button id="prev" type="button">הקודם</button>
+  <button id="play" type="button">מסע מודרך</button>
+  <button id="next" type="button">הבא</button>
+  <div id="dots" aria-hidden="true"></div>
+</div>
+<div id="box"><img alt=""><span id="boxCap"></span></div>
+<button id="boxX" type="button">סגירה</button>
+<button id="credit" type="button">קרדיטים</button>
+<button id="paint" type="button">הציור המקורי</button>
+<button id="snd" type="button" aria-pressed="true">צליל: פועל</button>
+<dialog id="credits">
+  <h2>קרדיטים</h2>
+  <ul>
+    <li>הציור: סנדרו בוטיצ'לי, "מפת הגיהנום", סוף המאה ה־15, ספריית הוותיקן. הצילום מוויקישיתוף, נחלת הכלל.</li>
+    <li>הטקסט: דנטה אליגיירי, "התופת". הציטוטים באיטלקית מן המקור; התרגום לעברית חופשי.</li>
+    <li>שלוש החיות ביער, מודלים מ-Sketchfab ברישיון CC Attribution: ‏"Marble Lion of Delos" מאת iedu360.eu, ‏"Puma Gray" מאת Novaky, ‏"Howling Wolf Sculpture" מאת towerdweller.</li>
+    <li>מרקמי הסלע והלבנים: Poly Haven ‏(CC0).</li>
+    <li>הצליל: פסקול אווירה שנוצר בדפדפן בזמן אמת, בלי קובצי מוזיקה.</li>
+    <li>שאר הפסלים נוצרו במחוללי תלת־ממד; המבנה, ההצבה והתנועה נבנו ב-Blender. התצוגה: three.js.</li>
+  </ul>
+  <form method="dialog"><button>סגירה</button></form>
+</dialog>
+<div id="gSub2"><span id="gWho2"></span><span id="gText2"></span></div>
+<div id="gSub" aria-live="polite"><span id="gWho"></span><span id="gText"></span></div>
+<button id="gNote" type="button">המחברת 0/5</button>
+<div id="gHint">W A S D ללכת · עכבר להביט · Shift לרוץ · N למחברת <b>· לחיצה על המסך ממשיכה</b></div>
+<div id="gBook"><div><h2>המחברת</h2><p>השורות שנאספו בדרך. לחיצה סוגרת.</p><ul id="gList"></ul></div></div>
+<div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.reload()">לשחק שוב</button><a href="./">לאתר</a></div></div>
+<div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
+  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, ולמטה אל חוף האכרון. כמה דקות.</p>
+  <p class="keys">מקלדת: W A S D ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: צד שמאל של המסך ללכת, צד ימין להביט</p>
+  <em lang="it">Lasciate ogne speranza, voi ch'intrate</em>
+  <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
+</div></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { createSound } from './sound.js?v=1';
+import { createGame } from './game.js?v=4';
+import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
+
+const VER = 18;
+const Q = new URLSearchParams(location.search);
+// phones and weak machines: no bloom, no near-camera statue swap, fewer particles
+const LITE = Q.has('lite') || matchMedia('(max-width: 720px)').matches || (navigator.deviceMemory && navigator.deviceMemory < 4);
+const $ = (id) => document.getElementById(id);
+const V = ({ r, a, z }) => { const t = a * Math.PI / 180; return new THREE.Vector3(r * Math.cos(t), z, -r * Math.sin(t)); };
+STOPS.forEach((s) => { s.eyeV = V(s.eye); s.tgtV = V(s.target); if (s.via) s.viaV = s.via.map(V);
+  (s.parts || []).forEach((q) => { q.eyeV = V(q.eye); q.tgtV = V(q.target); }); });
+
+// --- renderer ---------------------------------------------------------------
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1.5 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1018);
+scene.fog = new THREE.FogExp2(0x0b1018, 0.005);
+// on a tall phone screen the vertical angle opens up so the scene keeps its width
+const fovFor = (asp) => asp >= 1.15 ? 58 : Math.min(92, Math.max(58, 2 * Math.atan(Math.tan(27 * Math.PI / 180) / asp) * 180 / Math.PI));
+const camera = new THREE.PerspectiveCamera(fovFor(innerWidth / innerHeight), innerWidth / innerHeight, 0.06, 700);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.3;
+controls.maxDistance = 240;
+
+let composer = null, bloom = null;
+if (!LITE) {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.38, 0.5, 0.96);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+}
+
+// --- atmosphere by depth ----------------------------------------------------
+// y, fog colour, fog density, sky light, sun, exposure, headlamp
+const ATMO = [
+  [  40, 0x0d1220, 0.0030, 1.00, 1.25, 1.15, 0.0],
+  [   2, 0x0c111a, 0.0052, 0.90, 1.10, 1.12, 0.3],
+  [ -12, 0x15100c, 0.0085, 0.78, 0.85, 1.10, 0.6],
+  [ -27, 0x1c0c07, 0.0120, 0.55, 0.50, 1.10, 1.0],
+  [ -34, 0x260b05, 0.0135, 0.46, 0.36, 1.12, 1.0],
+  [ -55, 0x130605, 0.0200, 0.36, 0.20, 1.15, 1.3],
+  [ -74, 0x06101d, 0.0260, 0.32, 0.05, 1.08, 0.9],
+];
+const hemi = new THREE.HemisphereLight(0xc9d4ff, 0x3a2416, 1);
+const sun = new THREE.DirectionalLight(0xdfe6ff, 1.2);
+sun.position.set(40, 90, 30);
+const lamp = new THREE.PointLight(0xffd2a0, 0, 20, 1.0);
+scene.add(hemi, sun, lamp);
+const fogC = { value: new THREE.Color() }, fogD = { value: 0.005 }, uT = { value: 0 };
+const cA = new THREE.Color(), cB = new THREE.Color();
+function atmosphere(y) {
+  let i = 0;
+  while (i < ATMO.length - 2 && y < ATMO[i + 1][0]) i++;
+  const a = ATMO[i], b = ATMO[i + 1];
+  const k = THREE.MathUtils.clamp((a[0] - y) / (a[0] - b[0]), 0, 1);
+  const L = (n) => a[n] + (b[n] - a[n]) * k;
+  cA.setHex(a[1]); cB.setHex(b[1]); cA.lerp(cB, k);
+  scene.fog.color.copy(cA); scene.background.copy(cA); scene.fog.density = L(2);
+  fogC.value.copy(cA); fogD.value = L(2);
+  hemi.intensity = L(3); sun.intensity = L(4); renderer.toneMappingExposure = L(5);
+  hemi.color.setHex(y < -66 ? 0x9fc4ff : 0xc9d4ff);
+  lamp.intensity = L(6) * 2.2; lamp.color.setHex(y < -66 ? 0xbfd8ff : 0xffd2a0);
+  lamp.position.copy(camera.position);
+}
+
+// firelight: a handful of flickering point lights where the fires are
+const FIRES = [
+  [V({ r: 0, a: 0, z: T(-84) }), 0xff6a2a, 600, 70], [V({ r: 0, a: 0, z: T(-128) }), 0xff5a1e, 300, 46],
+  [V({ r: 32.4, a: 55, z: -25 }), 0xff7a30, 120, 22], [V({ r: 31.6, a: 100, z: T(-81.6, 1.5) }), 0xff6020, 90, 16],
+  [V({ r: 0, a: 0, z: ICE + 7 }), 0x7fb0ff, 110, 32],
+  [V({ r: 73.5, a: 150, z: 2.8 }), 0xff8a3a, 60, 18], [V({ r: 62, a: 150, z: -5 }), 0xff7a30, 40, 12],
+].map(([p, c, i, d], k) => { const l = new THREE.PointLight(c, i, d, 1.6); l.position.copy(p); l.userData = { i, k }; scene.add(l); return l; });
+
+// --- liquids: a small shader that flows around the pit ------------------------
+function liquid(c1, c2, glow, flow, sc, opacity = 1) {
+  return new THREE.ShaderMaterial({
+    transparent: opacity < 1, side: THREE.DoubleSide,     // some surfaces in the model face down (pitch, filth)
+    uniforms: { uT, fogC, fogD, c1: { value: new THREE.Color(c1) }, c2: { value: new THREE.Color(c2) },
+                glow: { value: glow }, flow: { value: flow }, sc: { value: sc }, op: { value: opacity } },
+    vertexShader: 'varying vec3 w; void main(){ vec4 p = modelMatrix * vec4(position,1.); w = p.xyz; gl_Position = projectionMatrix * viewMatrix * p; }',
+    fragmentShader: `
+      uniform float uT, glow, flow, sc, fogD, op; uniform vec3 c1, c2, fogC; varying vec3 w;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+      float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+        return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+      float fbm(vec2 p){ return .55*n(p) + .3*n(p*2.1+3.) + .15*n(p*4.3+7.); }
+      void main(){
+        float a = uT * flow, c = cos(a), s = sin(a);
+        vec2 q = mat2(c,-s,s,c) * w.xz * sc;
+        float v = fbm(q + vec2(0., uT*.05)), v2 = fbm(q*1.9 - vec2(uT*.08, 0.));
+        float m = smoothstep(.25, .8, v*.6 + v2*.4);
+        vec3 col = mix(c1, c2, m);
+        col += pow(max(0., v2-.5)*2.4, 3.) * (glow > 0. ? vec3(1.,.5,.2) : vec3(.45,.55,.65)) * .55;
+        col += c2 * glow * m;
+        float d = length(cameraPosition - w);
+        gl_FragColor = vec4(mix(col, fogC, 1. - exp(-fogD*fogD*d*d)), op);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+}
+const LIQUIDS = {
+  Acheron: liquid(0x0b1c2e, 0x2c5a78, 0, 0.010, 0.55), Styx: liquid(0x0f1a10, 0x38492a, 0, 0.004, 0.5),
+  Phlegethon: liquid(0x4a0606, 0xc81e10, 0.7, 0.020, 0.9), Blood_Rivulet_Fall: liquid(0x4a0606, 0xc81e10, 0.7, 0.03, 0.9),
+  B5_Pitch: liquid(0x030303, 0x2a1508, 0.3, 0.006, 1.2), B2_Filth: liquid(0x2a1a08, 0x5e4118, 0.06, 0.003, 1.1),
+  Mud: liquid(0x1a140d, 0x3c2f20, 0, 0.002, 0.8), Castle_Stream: liquid(0x12283a, 0x4a86a6, 0, 0.02, 1.2),
+};
+
+// --- particles --------------------------------------------------------------
+const dot = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d');
+  const g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, '#fff'); g.addColorStop(.4, 'rgba(255,255,255,.6)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+const clouds = [];
+function particles(n, place, color, size, vy, sway, additive) {
+  const pos = new Float32Array(n * 3), seed = new Float32Array(n), box = [];
+  for (let i = 0; i < n; i++) { const p = place(); pos.set([p.x, p.y, p.z], i * 3); seed[i] = Math.random() * 6.28; box.push(p.lo, p.hi); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({ map: dot, color, size, sizeAttenuation: true, transparent: true, depthWrite: false,
+    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, opacity: additive ? 1 : 0.75 });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts);
+  clouds.push({ pos, seed, box, vy, sway, attr: geo.attributes.position, n });
+}
+const ring = (r0, r1, y0, y1) => () => { const a = Math.random() * 6.283, r = Math.sqrt(r0 * r0 + Math.random() * (r1 * r1 - r0 * r0));
+  return { x: r * Math.cos(a), z: r * Math.sin(a), y: y0 + Math.random() * (y1 - y0), lo: y0, hi: y1 }; };
+const K = LITE ? 0.4 : 1;
+particles(1500 * K | 0, ring(3, 33, T(-136), T(-78)), 0xff7a22, 0.16, 0.55, 0.25, true);       // embers rising from the lower pit
+particles(700 * K | 0, ring(22.4, 24.3, T(-92), T(-92) + 6), 0xffa040, 0.13, -0.5, 0.1, true);  // flakes of fire on the burning sand
+particles(2600 * K | 0, ring(40.7, 43.5, T(-58), T(-58) + 7), 0xcfe0f5, 0.07, -8.5, 0.0, false); // hail on the gluttons
+particles(350 * K | 0, ring(0.5, 11, ICE, ICE + 9), 0xdcecff, 0.06, -0.25, 0.3, false);         // frost at the bottom
+particles(260 * K | 0, ring(55, 95, 0.2, 7), 0x9fb2c8, 0.05, 0.04, 0.4, false);                 // mist motes in the wood
+
+// stars over the wood: the last thing Dante sees before going in, and the first when he comes out
+{ const n = 1400, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, e = Math.asin(0.04 + Math.random() * 0.96), R = 600;
+    pos.set([R * Math.cos(e) * Math.cos(a), R * Math.sin(e), R * Math.cos(e) * Math.sin(a)], i * 3); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const stars = new THREE.Points(geo, new THREE.PointsMaterial({ map: dot, color: 0xdfe8ff, size: 2.2, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false }));
+  stars.frustumCulled = false; stars.renderOrder = -1; scene.add(stars); }
+
+// --- loading ----------------------------------------------------------------
+const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/');
+const loader = new GLTFLoader().setDRACOLoader(draco);
+const ANIM = {}, LOD = [], detail = new Map(), flames = [];
+const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
+const m4 = new THREE.Matrix4(), v3 = new THREE.Vector3(), col = new THREE.Color();
+
+function zoneTint(p) {       // souls take the colour of the place they suffer in
+  const y = p.y, r = Math.hypot(p.x, p.z);
+  if (y < -70) return 0xbcd6ff;
+  if (y < -45) return 0xccbaa8;
+  if (y < -32.5) return r > 26.2 ? 0xffad9e : r > 24.3 ? 0xdbd1bd : 0xf5c799;
+  if (y < -28.9) return 0xebc7a8;
+  if (y < -26.3) return 0xbdd1ad;
+  if (y < -23.2) return 0xe6d6bd;
+  if (y < -20.3) return 0xccbda0;
+  if (y < -13 && r < 47.4) return 0xe6ebff;
+  return 0;
+}
+
+const KEEP = /^((Dante|Virgil)_(Wood|Gate|Acheron)|Charon|Beast_\w+)$/, kept = [];
+function prepare(gltf) {
+  const json = gltf.parser.json, assoc = gltf.parser.associations, root = gltf.scene;
+  root.updateMatrixWorld(true);
+  const meshName = (o) => { for (let n = o; n && n !== root.parent; n = n.parent) { const a = assoc.get(n);
+    if (a && a.nodes != null && json.nodes[a.nodes].mesh != null) return json.meshes[json.nodes[a.nodes].mesh].name || ''; } return ''; };
+  const groups = new Map(), ready = [];
+  root.traverse((o) => {
+    const name = o.userData.name || '';
+    if (name.startsWith('ANIM_') && !/\.\d+$/.test(name)) ANIM[name.slice(5)] = { o, p: o.position.clone() };
+    if (name.startsWith('Dante_Path') || name.startsWith('Path_Station')) o.visible = false;   // the gold thread reads as a beam of light here
+    if (LIQUIDS[name]) o.traverse((c) => { if (c.isMesh) c.material = LIQUIDS[name]; });
+    if (!o.isMesh) return;
+    if (o.material.name === 'M_Flame' && !flames.includes(o.material)) { o.material.toneMapped = false; flames.push(o.material); }
+    if (o.material.transparent) o.renderOrder = 2;
+    if (o.material.isShaderMaterial) return;
+    if (o.isInstancedMesh) { ready.push([o, meshName(o)]); return; }
+    if (KEEP.test(name)) { o.userData.meshKey = meshName(o).slice(2); kept.push(o); return; }
+    let top = o.parent;                                   // batch under the nearest moving parent, else the root
+    while (top !== root && !(top.userData.name || '').startsWith('ANIM_')) top = top.parent;
+    // split each ring of statues into eight sectors, so whatever is behind the camera is culled as a block
+    v3.setFromMatrixPosition(o.matrixWorld);
+    const sector = Math.hypot(v3.x, v3.z) < 6 ? 0 : Math.floor((Math.atan2(v3.z, v3.x) + Math.PI) / (Math.PI / 4)) % 8;
+    const key = top.uuid + o.geometry.uuid + o.material.uuid + sector;
+    if (!groups.has(key)) groups.set(key, { top, list: [], name: meshName(o) });
+    groups.get(key).list.push(o);
+  });
+  // thousands of separate statues become a few hundred instanced draws
+  for (const { top, list, name } of groups.values()) {
+    if (list.length < 3 && !name.startsWith('W|')) continue;
+    const im = new THREE.InstancedMesh(list[0].geometry, list[0].material, list.length);
+    const inv = new THREE.Matrix4().copy(top.matrixWorld).invert();
+    list.forEach((o, i) => { im.setMatrixAt(i, m4.multiplyMatrices(inv, o.matrixWorld)); o.parent.remove(o); });
+    im.renderOrder = list[0].renderOrder;
+    top.add(im);
+    ready.push([im, name]);
+  }
+  for (const [im, name] of ready) {
+    im.computeBoundingSphere();
+    if (!/^W\|(Fig_|Char_|Mon_|Beast_)/.test(name)) continue;
+    const base = new Float32Array(im.instanceMatrix.array);
+    if (name.startsWith('W|Fig_') && !name.includes('Demon')) {
+      im.updateMatrixWorld(true);
+      for (let i = 0; i < im.count; i++) { v3.fromArray(base, i * 16 + 12).applyMatrix4(im.matrixWorld); im.setColorAt(i, col.setHex(zoneTint(v3) || 0xffffff)); }
+      im.instanceColor.needsUpdate = true;
+    }
+    LOD.push({ low: im, key: name.slice(2), base, hi: null, shown: [] });
+  }
+  scene.add(root);
+}
+
+function loadDetail() {
+  loader.load(`inferno_detail.glb?v=${VER}`, (g) => {
+    for (const o of g.scene.children) { const parts = []; o.traverse((c) => { if (c.isMesh) parts.push([c.geometry, c.material]); });
+      detail.set((o.userData.name || o.name).slice(2), parts); }
+    lodClock = 9;
+  });
+}
+
+// near the camera the light statues are swapped for the detailed ones, instance by instance
+const R_NEAR = 11, MAX_NEAR = LITE ? 0 : 80;
+let lodClock = 0;
+function updateLOD() {
+  const near = [];
+  for (const e of LOD) {
+    if (!detail.has(e.key)) continue;
+    const mw = e.low.matrixWorld, n = e.low.count;
+    for (let i = 0; i < n; i++) { const d = v3.fromArray(e.base, i * 16 + 12).applyMatrix4(mw).distanceToSquared(camera.position);
+      if (d < R_NEAR * R_NEAR) near.push([d, e, i]); }
+  }
+  near.sort((a, b) => a[0] - b[0]);
+  const want = new Map();
+  for (const [, e, i] of near.slice(0, MAX_NEAR)) { if (!want.has(e)) want.set(e, []); want.get(e).push(i); }
+  for (const e of LOD) {
+    const w = want.get(e) || [];
+    if (w.length === e.shown.length && w.every((x, k) => x === e.shown[k])) continue;
+    for (const i of e.shown) e.low.setMatrixAt(i, m4.fromArray(e.base, i * 16));
+    for (const i of w) e.low.setMatrixAt(i, ZERO);
+    e.low.instanceMatrix.needsUpdate = true;
+    if (w.length && (!e.hi || e.hi[0].instanceMatrix.count < w.length)) {
+      if (e.hi) e.hi.forEach((h) => { h.parent.remove(h); h.dispose(); });
+      const cap = Math.min(e.low.count, Math.max(16, w.length * 2));
+      e.hi = detail.get(e.key).map(([geo, mat]) => { const h = new THREE.InstancedMesh(geo, mat, cap);
+        h.frustumCulled = false; h.position.copy(e.low.position); h.quaternion.copy(e.low.quaternion); h.scale.copy(e.low.scale); e.low.parent.add(h); return h; });
+    }
+    if (e.hi) for (const h of e.hi) {
+      w.forEach((i, k) => { h.setMatrixAt(k, m4.fromArray(e.base, i * 16)); if (e.low.instanceColor) h.setColorAt(k, col.fromArray(e.low.instanceColor.array, i * 3)); });
+      h.count = w.length; h.instanceMatrix.needsUpdate = true; if (h.instanceColor) h.instanceColor.needsUpdate = true;
+    }
+    e.shown = w;
+  }
+}
+
+// --- motion: the same loops the Blender file runs, driven by a frame counter -------
+const TAU = Math.PI * 2;
+function animate(f) {
+  const spin = (n, per, bob = 0, bobPer = 1, ph = 0) => { const a = ANIM[n]; if (!a) return; a.o.rotation.y = f * TAU / per; if (bob) a.o.position.y = a.p.y + bob * Math.sin(f / bobPer + ph); };
+  spin('Storm', 900, 0.35, 37); spin('Storm2', 620, 0.3, 29, 2);
+  spin('Pander', 2200); spin('Seducer', -2200); spin('Diviner', 5200); spin('Hypocrite', -6400);
+  if (ANIM.Pushers1) ANIM.Pushers1.o.rotation.y = 0.012 * Math.sin(f / 22);
+  if (ANIM.Pushers2) ANIM.Pushers2.o.rotation.y = -0.012 * Math.sin(f / 22);
+  const boat = (n, rad, tan, per) => { const a = ANIM[n]; if (!a) return; const r = Math.hypot(a.p.x, a.p.z), ux = a.p.x / r, uz = a.p.z / r, s = Math.sin(f / per);
+    a.o.position.set(a.p.x + (ux * rad + uz * tan) * s, a.p.y + 0.035 * Math.sin(f / 9), a.p.z + (uz * rad - ux * tan) * s);
+    a.o.rotation.x = 0.03 * Math.sin(f / 11); a.o.rotation.z = 0.02 * Math.sin(f / 14 + 1); };
+  boat('CharonBoat', 0.45, 0, 60); boat('PhlegyasBoat', 0, 1.6, 70);
+  const fl = 1 + 0.18 * Math.sin(f * 0.8) + 0.1 * Math.sin(f * 2.1);
+  for (const m of flames) m.emissiveIntensity = 1.9 * fl;
+  for (const l of FIRES) l.intensity = l.userData.i * (1 + 0.2 * Math.sin(f * 0.53 + l.userData.k * 1.7) + 0.1 * Math.sin(f * 1.31 + l.userData.k * 3.1));
+}
+
+// --- sound: an ambient score made in the browser; it may only start after a click ---
+const sound = createSound();
+const sndLabel = () => { $('snd').textContent = sound.on ? 'צליל: פועל' : 'צליל: כבוי'; $('snd').setAttribute('aria-pressed', sound.on); };
+sndLabel();
+$('snd').addEventListener('click', () => { sound.toggle(); sndLabel(); });
+addEventListener('pointerdown', () => { if (sound.on) sound.start(); }, { once: true });   // deep links skip the opening screen
+if (Q.has('fps')) window.__sound = sound;
+
+// --- stations, card, journey ------------------------------------------------
+const rail = $('rail'), dots = $('dots'), card = $('card');
+let at = 0, sub = -1, travel = null, playing = false, dwell = 0;
+const ease = (k) => k * k * (3 - 2 * k);
+const polar = (v) => ({ r: Math.hypot(v.x, v.z), a: Math.atan2(-v.z, v.x), y: v.y });
+const unpolar = (r, a, y) => new THREE.Vector3(r * Math.cos(a), y, -r * Math.sin(a));
+function route(from, to, via) {
+  if (via) return new THREE.CatmullRomCurve3([from, ...via, to], false, 'centripetal');
+  const A = polar(from), B = polar(to), dist = from.distanceTo(to), pts = [];
+  let da = Math.atan2(Math.sin(B.a - A.a), Math.cos(B.a - A.a));
+  if (A.r < 1.5) { A.a = B.a; da = 0; } else if (B.r < 1.5) da = 0;
+  for (let k = 0; k <= 6; k++) { const u = k / 6, s = Math.sin(Math.PI * u);
+    pts.push(unpolar(Math.max(0.3, A.r + (B.r - A.r) * u - s * Math.min(5, 0.12 * dist + 0.6)), A.a + da * u, A.y + (B.y - A.y) * u + s * Math.min(6, 0.4 + 0.1 * dist))); }
+  pts[0] = from.clone(); pts[6] = to.clone();
+  return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+}
+function showCard(i, part = -1) {
+  const st = STOPS[i], s = part >= 0 ? st.parts[part] : st;
+  $('cName').textContent = s.title; $('cSub').textContent = s.tag;
+  $('cImg').src = `img/map_${String(st.img).padStart(2, '0')}.jpg`; $('cImg').alt = `הקטע בציור של בוטיצ'לי: ${st.name}`;
+  const el = (tag, txt) => { const e = document.createElement(tag); if (txt) e.textContent = txt; return e; };
+  const text = $('cText'); text.replaceChildren(...(s.text || [s.who, s.punish]).filter(Boolean).map((t) => el('p', t)));
+  if (s.list) { const ol = el('ol'); if (s.parts) ol.className = 'pick';
+    s.list.forEach((t, k) => { const li = el('li', t); if (s.parts) li.addEventListener('click', () => { setPlaying(false); go(i, false, k); }); ol.appendChild(li); });
+    text.appendChild(ol); }
+  const chips = $('cParts'); chips.hidden = !st.parts;
+  if (st.parts) chips.replaceChildren(...[-1, ...st.parts.keys()].map((k) => { const b = el('button', k < 0 ? 'כל המעגל' : String(k + 1)); b.type = 'button';
+    if (k >= 0) b.title = st.parts[k].title; if (k === part) b.setAttribute('aria-current', 'true');
+    b.addEventListener('click', () => { setPlaying(false); go(i, false, k); }); return b; }));
+  $('cQ').style.display = s.it ? '' : 'none';
+  $('cIt').textContent = s.it || ''; $('cHe').textContent = s.he || ''; $('cRef').textContent = s.ref || '';
+  $('cLook').textContent = s.look ? 'במודל: ' + s.look : '';
+  card.querySelector('.body').scrollTop = 0;
+  card.classList.remove('away');
+}
+function mark(i) {
+  [...rail.children].forEach((b, k) => b.setAttribute('aria-current', k === i));
+  [...dots.children].forEach((d, k) => { d.className = k === i ? 'on' : k < i ? 'done' : ''; });
+  const cur = rail.children[i]; if (cur && rail.scrollHeight > rail.clientHeight) cur.scrollIntoView({ block: 'nearest' });
+}
+function go(i, instant, part = -1) {
+  i = Math.max(0, Math.min(STOPS.length - 1, i));
+  const st = STOPS[i], s = part >= 0 ? st.parts[part] : st; mark(i); rail.classList.remove('open');
+  if (instant) { camera.position.copy(s.eyeV); controls.target.copy(s.tgtV); at = i; sub = part; showCard(i, part); return; }
+  const forward = part < 0 && i === at + 1 && s.viaV;           // the stair tunnel is only walked on the way in
+  const curve = route(camera.position.clone(), s.eyeV, forward ? s.viaV : null);
+  const dist = curve.getLength();
+  travel = { curve, t: 0, dur: forward ? (s.viaV.length > 6 ? 17 : 9) : THREE.MathUtils.clamp(dist / 7, 3.2, 9), t0: controls.target.clone(), t1: s.tgtV, along: !!forward, to: i, part };
+  card.classList.add('away'); controls.enabled = false;
+}
+// one step forward or back: through the sub-chapters of a station first, then to the neighbouring station
+function step(d) {
+  const i = travel ? travel.to : at, q = travel ? travel.part : sub, n = (STOPS[i].parts || []).length;
+  if (d > 0 && q < n - 1) return go(i, false, q + 1);
+  if (d < 0 && q >= 0) return go(i, false, q - 1);
+  go(i + d);
+}
+function setPlaying(on) { playing = on; dwell = 0; $('play').textContent = on ? 'השהה' : (at >= STOPS.length - 1 ? 'מההתחלה' : 'מסע מודרך'); }
+STOPS.forEach((s, i) => {
+  const b = document.createElement('button'); b.type = 'button';
+  b.innerHTML = `<i>${i || '·'}</i><span>${s.name}</span>`;
+  b.addEventListener('click', () => { setPlaying(false); go(i); });
+  rail.appendChild(b); dots.appendChild(document.createElement('b'));
+});
+$('play').addEventListener('click', () => {
+  if (playing) return setPlaying(false);
+  if (at >= STOPS.length - 1) { go(1); setPlaying(true); return; }
+  setPlaying(true); if (at === 0) go(1); else dwell = 99;
+});
+$('next').addEventListener('click', () => { setPlaying(false); step(1); });
+$('prev').addEventListener('click', () => { setPlaying(false); step(-1); });
+$('menu').addEventListener('click', () => rail.classList.toggle('open'));
+// the title is the switch: folded, only the title stays on screen; a click on it opens the text again
+function setFolded(f) { card.classList.toggle('folded', f); $('fold').textContent = f ? 'לפירוט ▾' : 'מזער ▴'; $('head').setAttribute('aria-expanded', !f); try { localStorage.setItem('fold', f ? '1' : ''); } catch (e) {} }
+$('head').addEventListener('click', () => setFolded(!card.classList.contains('folded')));
+$('head').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); $('head').click(); } });
+{ let f = false; try { f = !!localStorage.getItem('fold'); } catch (e) {} setFolded(f); }
+const CAP = 'סנדרו בוטיצ\'לי, מפת הגיהנום, סוף המאה ה־15. ספריית הוותיקן.';
+function openBox(src, full) {
+  const b = $('box'); b.querySelector('img').src = src; b.className = full ? 'on full' : 'on'; b.scrollTo(0, 0);
+  $('boxCap').textContent = full ? CAP + ' לחיצה על הציור מגדילה.' : CAP;
+}
+const closeBox = () => { $('box').className = ''; };
+$('cImg').addEventListener('click', () => openBox($('cImg').src, false));
+$('paint').addEventListener('click', () => openBox('img/map_full.jpg', true));
+$('paint0').addEventListener('click', () => openBox('img/map_full.jpg', true));
+$('boxX').addEventListener('click', closeBox);
+$('box').addEventListener('click', (e) => {
+  const b = $('box');
+  if (e.target.tagName !== 'IMG' || !b.classList.contains('full')) return closeBox();
+  const img = e.target, r = img.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+  if (!b.classList.toggle('zoom')) return;
+  const z = img.getBoundingClientRect();                         // keep the clicked spot under the pointer
+  b.scrollTo(b.scrollLeft + z.left + fx * z.width - e.clientX, b.scrollTop + z.top + fy * z.height - e.clientY);
+});
+$('credit').addEventListener('click', () => $('credits').showModal());
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeBox();
+  if (e.key === 'ArrowLeft' || e.key === 'PageDown') $('next').click();
+  if (e.key === 'ArrowRight' || e.key === 'PageUp') $('prev').click();
+  if (e.key === ' ' && e.target === document.body) { e.preventDefault(); $('play').click(); }
+});
+renderer.domElement.addEventListener('pointerdown', () => { if (playing && !travel) setPlaying(false); });
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); if (composer) composer.setSize(innerWidth, innerHeight);
+});
+const first = parseInt(Q.get('station'), 10);
+const i0 = first >= 1 && first <= STOPS.length ? first - 1 : 0, part0 = parseInt(Q.get('part'), 10);
+go(i0, true, part0 >= 1 && part0 <= (STOPS[i0].parts || []).length ? part0 - 1 : -1);   // ?station=13&part=3: third ditch
+
+const game = createGame({ scene, camera, renderer, sound, detail, kept, LOD });
+
+// --- frame loop -------------------------------------------------------------
+const clock = new THREE.Clock(), look = new THREE.Vector3();
+let frames = 0, fpsT = 0;
+if (Q.has('fps')) { renderer.info.autoReset = false; window.__dbg = { LOD, detail, ANIM, camera }; }
+const fpsEl = Q.has('fps') ? Object.assign(document.body.appendChild(document.createElement('div')), { id: 'fps' }) : null;
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  uT.value += dt;
+  if (game.active) game.update(dt); else if (travel) {
+    travel.t = Math.min(1, travel.t + dt / travel.dur);
+    const k = travel.along ? travel.t : ease(travel.t);
+    travel.curve.getPointAt(k, camera.position);
+    if (travel.along) {                                   // walking: look where the path goes, then turn to the scene
+      travel.curve.getPointAt(Math.min(1, k + 0.035), look);
+      const turn = THREE.MathUtils.smoothstep(k, 0.86, 1);
+      controls.target.copy(look).lerp(travel.t1, turn);
+    } else controls.target.lerpVectors(travel.t0, travel.t1, k);
+    camera.lookAt(controls.target);
+    if (travel.t === 1) { at = travel.to; sub = travel.part; travel = null; controls.enabled = true; showCard(at, sub); dwell = 0;
+      if (at >= STOPS.length - 1 && playing) setPlaying(false); }
+  } else {
+    controls.update();
+    if (playing) { dwell += dt; if (dwell > 12) step(1); }
+  }
+  atmosphere(camera.position.y);
+  sound.setDepth(-camera.position.y / 74);
+  animate(uT.value * 24);
+  for (const c of clouds) {
+    const p = c.pos;
+    for (let i = 0; i < c.n; i++) { const j = i * 3; p[j + 1] += c.vy * dt;
+      if (c.sway) { p[j] += Math.sin(uT.value * 0.7 + c.seed[i]) * c.sway * dt; p[j + 2] += Math.cos(uT.value * 0.6 + c.seed[i]) * c.sway * dt; }
+      const lo = c.box[i * 2], hi = c.box[i * 2 + 1];
+      if (p[j + 1] > hi) p[j + 1] = lo; else if (p[j + 1] < lo) p[j + 1] = hi; }
+    c.attr.needsUpdate = true;
+  }
+  lodClock += dt;
+  if (MAX_NEAR && lodClock > 0.3) { lodClock = 0; updateLOD(); }
+  if (composer) composer.render(); else renderer.render(scene, camera);
+  if (fpsEl) { frames++; fpsT += dt; const calls = renderer.info.render.calls, tris = renderer.info.render.triangles; renderer.info.reset(); if (fpsT > 1) { fpsEl.textContent = `${Math.round(frames / fpsT)} fps · ${calls} calls · ${(tris / 1e6).toFixed(2)}M tris`; frames = 0; fpsT = 0; } }
+}
+
+const bar = document.querySelector('#bar i'), msg = $('msg'), load = $('load');
+loader.load(`inferno_web.glb?v=${VER}`, (gltf) => {
+  prepare(gltf);
+  renderer.setAnimationLoop(tick);
+  const open = () => { load.style.opacity = 0; setTimeout(() => load.remove(), 900); };
+  load.classList.add('ready');
+  $('begin').addEventListener('click', () => { open(); sound.start(); game.start(); });
+  if (Q.has('fps')) window.__game = game;
+  if (!LITE) loadDetail();
+}, (e) => { if (e.total) bar.style.width = (100 * e.loaded / e.total) + '%'; },
+   (err) => { console.error(err); msg.textContent = 'טעינת המודל נכשלה. את הדף צריך לפתוח דרך שרת (http), לא כקובץ מקומי.'; });
+</script>
+</body>
+</html>
