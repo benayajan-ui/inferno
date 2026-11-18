@@ -145,7 +145,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       for (let k = 0; k < list.length; k += 3) { if (Math.abs(list[k + 1] - pos.y) > 1.5) continue;
         const dx = pos.x - list[k], dz = pos.z - list[k + 2], d = Math.hypot(dx, dz);
         if (d < 0.5 && d > 1e-4) { pos.x += dx / d * (0.5 - d); pos.z += dz / d * (0.5 - d); } } }
-    // Virgil and the statues that woke are solid too
+    // the big figures are solid; Virgil and the souls on the narrow shore are not, or they would block the way
     for (const o of solids) { if (!o.visible) continue; o.getWorldPosition(v); if (Math.abs(v.y - pos.y) > 1.6) continue;
       const R = o.userData.solidR || 0.48, dx = pos.x - v.x, dz = pos.z - v.z, d = Math.hypot(dx, dz); if (d < R && d > 1e-4) { pos.x += dx / d * (R - d); pos.z += dz / d * (R - d); } }
   }
@@ -184,7 +184,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     src.updateMatrixWorld(true); const q = new THREE.Quaternion(), sc = new THREE.Vector3();
     src.matrixWorld.decompose(v, q, sc); scene.attach(src);
     guide = src; guide.userData.fwd = -1; guide.scale.copy(sc); guide.position.copy(PATH[0][0]); guide.frustumCulled = false;
-    guideLight = new THREE.PointLight(0xa9bcff, 5, 7, 1.7); scene.add(guideLight); solids.push(guide);
+    guideLight = new THREE.PointLight(0xa9bcff, 5, 7, 1.7); scene.add(guideLight);
   }
   function moveGuide(dt) {
     if (!guide) return;
@@ -237,7 +237,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function liven(o, turn) {
     o.material = o.material.clone();
     const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l);
-    alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l }); if (!solids.includes(o)) solids.push(o);
+    alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l }); if (o.userData.solidR && !solids.includes(o)) solids.push(o);
     return o;
   }
   // pull the statue nearest to a point out of its instanced batch, so it can move on its own
@@ -398,7 +398,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function setupStages() {
     const order = [2, 0, 3, 1];                                                          // who stands where: Ovid, Homer, Lucan, Horace
     order.forEach((rank, i) => { const o = find('Poet_' + i); if (!o) return; scene.attach(o); const q = p(48.55, 54.9 - i * 2.5, 0);
-      o.position.x = q.x; o.position.z = q.z; o.userData.fwd = -1; o.rotation.set(0, Math.atan2(q.x, q.z), 0); solids.push(o); poets.push({ o, rank, away: true }); });
+      o.position.x = q.x; o.position.z = q.z; o.userData.fwd = -1; o.userData.solidR = 0.45; o.rotation.set(0, Math.atan2(q.x, q.z), 0); solids.push(o); poets.push({ o, rank, away: true }); });
     spoke.l1 = speaker(p(50.2, 78, L1), 3.5, p(50.65, 78, 0)); spoke.l2 = speaker(p(50.2, 64, L1), 3.5, p(50.65, 64, 0));
     spoke.c2 = speaker(p(45.8, 86, L2), 3, p(45.9, 86, 0));
     game.lane = clearAlong(ROUTES.limboIn, 0.85) + clearAlong(arc(49.75, 58, 46, L1), 0.8) + clearAlong(arc(48.55, 56.5, 46, L1), 0.7) + clearAlong(ROUTES.limboOut, 0.85) + clearAlong(ROUTES.toMinos, 0.6) + clearAlong(ROUTES.toLovers, 0.75);
@@ -429,7 +429,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function enterLust() {
     phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); say('c2_in', null, true);
     TRIG.push({ at: p(44.8, 86.5, L2), r: 2.4, run: () => { if (spoke.c2) liven(spoke.c2, true); murmur('c2_soul', spoke.c2 ? spoke.c2.position : p(45.9, 86, L2)); } },
-      { at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) liven(m, false);
+      { at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) { m.userData.solidR = 0.9; liven(m, false); }
         say('minos', null, true); say('v_minos', null, true); say('c2_task', () => { loversOn = true; hud('מצא בסערה את השניים שעפים יחד'); route('toLovers'); }, true); } });
   }
   function runLovers(dt) {
