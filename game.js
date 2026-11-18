@@ -41,20 +41,20 @@ const LINES = {
   // --- 4. the first circle: Limbo ---
   l_in:     ['וירגיליוס', 'זה לימבו. יש כאן אנשים שחיו לפני שהנצרות באה לעולם. גם אני אחד מהם. איש אינו מכאיב לנו כאן. העונש שלנו הוא להתגעגע לגן העדן ולדעת שלעולם לא נגיע אליו.'],
   l_soul1:  ['נשמה', 'לפעמים אני עוד מוצא את עצמי מרים את הראש, כאילו מישהו עומד לקרוא לי למעלה.'],
-  l_poets:  ['וירגיליוס', 'ארבעת אלה היו משוררים מפורסמים עוד לפני שנולדת. בוא נפגוש אותם לפי הסדר. התחל בהומרוס.'],
+  l_poets:  ['וירגיליוס', 'אלה ארבעה משוררים גדולים מהעולם העתיק. פגוש אותם לפי הסדר. התחל בהומרוס.'],
   l_w0:     ['וירגיליוס', 'קודם הומרוס, דנטה.'],
   l_w1:     ['וירגיליוס', 'עכשיו אנחנו מחפשים את הורטיוס.'],
   l_w2:     ['וירגיליוס', 'עכשיו אנחנו מחפשים את אובידיוס.'],
   l_w3:     ['וירגיליוס', 'נשאר לנו לוקנוס.'],
-  p0:       ['הומרוס', 'אני הומרוס. אולי שמעת על מלחמת טרויה. אני סיפרתי עליה, ועל הלוחם שלקח לו שנים למצוא את הדרך הביתה. עכשיו גש להורטיוס.'],
-  p1:       ['הורטיוס', 'אני הורטיוס. כתבתי שירים על השטויות שבני אדם עושים, במיוחד כשהם בטוחים שהם חכמים. אובידיוס מחכה לך.'],
-  p2:       ['אובידיוס', 'אני אובידיוס. בסיפורים שלי אנשים הופכים לעצים, לציפורים ולכוכבים. נשאר לך לפגוש את לוקנוס.'],
-  p3:       ['לוקנוס', 'אני לוקנוס. כתבתי על המלחמה שבה רומאים נלחמו ברומאים. וירגיליוס, שמעתי שגם האורח שלך כותב שירה. דנטה, בוא עמוד איתנו.'],
-  l_sixth:  ['וירגיליוס', 'ארבעתם, אני, ועכשיו גם אתה. הם קיבלו אותך כמשורר השישי בחבורה. בוא, המדרגות למעגל הבא מאחורינו.'],
+  p0:       ['הומרוס', 'אני הומרוס. סיפרתי על מלחמת טרויה. עכשיו גש להורטיוס.'],
+  p1:       ['הורטיוס', 'אני הורטיוס. כתבתי על השטויות של בני האדם. אובידיוס מחכה לך.'],
+  p2:       ['אובידיוס', 'אני אובידיוס. אצלי אנשים הופכים לעצים ולכוכבים. נשאר לך לוקנוס.'],
+  p3:       ['לוקנוס', 'אני לוקנוס. כתבתי על מלחמת רומאים ברומאים. דנטה, בוא עמוד איתנו.'],
+  l_sixth:  ['וירגיליוס', 'הם קיבלו אותך כמשורר השישי בחבורה. בוא, המדרגות מאחורינו.'],
   // --- 5. the second circle: the storm ---
   c2_in:    ['וירגיליוס', 'זה מינוס. כל נשמה שמגיעה אליו מספרת מה עשתה בחייה. תסתכל על הזנב שלו. אם הוא כורך אותו פעמיים, היא יורדת למעגל השני. אם הוא כורך אותו שלוש פעמים, היא יורדת לשלישי.'],
   minos:    ['מינוס', 'הבא בתור! רגע. אתה חי. מי נתן לך להיכנס?'],
-  v_minos:  ['וירגיליוס', 'מי שנתן לנו רשות לחצות את הנהר. פנה לנו דרך, מינוס.'],
+  v_minos:  ['וירגיליוס', 'מי שנתן לנו רשות לחצות את הנהר. תן לנו לעבור, מינוס.'],
   c2_task:  ['וירגיליוס', 'זאת הסערה שראית מלמעלה. הרם את הראש. בין כל הנשמות יש שתיים שעפות יחד. חכה שיתקרבו וקרא להן.'],
   d_call:   ['דנטה', 'אתם שם, שניכם! תוכלו לדבר איתי?'],
   francesca:['פרנצ\'סקה', 'אני פרנצ\'סקה. זה פאולו. הייתי נשואה לאחיו. יום אחד קראנו יחד סיפור על שני אוהבים. כשהגענו לנשיקה שלהם, פאולו נישק אותי. בעלי גילה והרג את שנינו. מאז הרוח נושאת אותנו יחד.'],
@@ -320,6 +320,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       const d = Math.hypot(m.at.x - pos.x, m.at.z - pos.z); m.a.volume = sound.on ? Math.max(0, Math.min(0.85, 1.1 - d / 9)) : 0;
       if (m.t > m.max || d > 11) { m.a.pause(); murmurs.splice(i, 1); if (!murmurs.length) $('gSub2').classList.remove('on'); if (m.after) m.after(); } }
   }
+  // a new stage begins in silence: whatever was still being said, or waiting to be said, in the last one is dropped
+  function hush() { queue.length = 0; if (speaking) { if (speaking.audio) speaking.audio.pause(); speaking = null; } $('gSub').classList.remove('on');
+    for (const m of murmurs) m.a.pause(); murmurs.length = 0; $('gSub2').classList.remove('on'); }
   function speak(dt) {
     if (speaking) { speaking.t += dt; if (speaking.done || speaking.t > speaking.max) { $('gSub').classList.remove('on'); if (speaking.after) speaking.after(); speaking = null; } return; }
     const next = queue.shift(); if (!next) return;
@@ -532,7 +535,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     for (const n of ['Francesca', 'Paolo']) { const o = find(n); if (o) { scene.attach(o); lovers.push({ o, y: o.position.y }); } }
   }
   function enterLimbo() {
-    phase = 'limbo'; save('limbo'); title('לימבו', 'המעגל הראשון'); route('limboIn'); lock(L1); hud('לך עם וירגיליוס אל ארבעת המשוררים'); say('l_in', null, true);
+    hush(); phase = 'limbo'; save('limbo'); title('לימבו', 'המעגל הראשון'); route('limboIn'); lock(L1); hud('לך עם וירגיליוס אל ארבעת המשוררים'); say('l_in', null, true);
     TRIG.push({ at: p(50.0, 79.5, L1), r: 2.6, run: () => { if (spoke.l1) liven(spoke.l1, true); murmur('l_soul1', spoke.l1 ? spoke.l1.position : p(50.6, 78, L1)); } },
       { at: p(49.8, 59.5, L1), r: 3, run: () => say('l_poets', () => { poetsOn = true; poetTask(); }, true) });
   }
@@ -565,7 +568,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   // --- the second circle: Minos at the door, then the two who fly together in the storm (Inferno V) ---
   const lovers = []; let loversOn = false, loversDown = 0, faintT = -1;
   function enterLust() {
-    phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); lock(L2); hud('גש אל מינוס בכניסה למעגל'); say('c2_in', null, true);
+    hush(); phase = 'lust'; save('lust'); title('התאוותנים', 'המעגל השני'); route('toMinos'); lock(L2); hud('גש אל מינוס בכניסה למעגל'); say('c2_in', null, true);
     TRIG.push({ at: p(44.8, 81.5, L2), r: 3, run: () => { const m = find('Minos'); if (m) { m.userData.solidR = 0.9; liven(m, false); }
         say('minos', null, true); say('v_minos', () => { if (m) { scene.attach(m); const w = p(44.8, 81.5, 0), dx = m.position.x - w.x, dz = m.position.z - w.z, d = Math.hypot(dx, dz) || 1; aside = { o: m, x: dx / d, z: dz / d, left: 1.3 }; } }, true);
         say('c2_task', () => { loversOn = true; hud('מצא שתי נשמות שעפות יחד בסערה'); route('toLovers'); }, true); } });
@@ -604,7 +607,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       m.position.copy(p(r, a, L3 + 0.04)); m.scale.set(1, 0.4, 1); m.visible = false; scene.add(m); mounds.push(m); }
   }
   function enterGluttony(fromFaint) {
-    phase = 'gluttony'; save('gluttony'); title('הגרגרנים', 'המעגל השלישי');
+    hush(); phase = 'gluttony'; save('gluttony'); title('הגרגרנים', 'המעגל השלישי');
     const q = p(42.2, 91.2, L3), gy = groundAt(q.x, L3, q.z); pos.set(q.x, gy === null ? L3 : gy, q.z); yaw = rad(91.2); pitch = fromFaint ? 0.9 : 0;
     if (fromFaint) { wakeT = 0; crouch = 1.15; }
     route('c3'); if (guide) guide.position.copy(ROUTES.c3[0]);
@@ -654,7 +657,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
   function leaveGluttony() { lockY = null; hud('עבור ליד קרברוס אל המדרגות'); route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
   function enterAvarice() {
-    phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('לך אחרי וירגיליוס אל דוחפי הסלעים');
+    hush(); phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('לך אחרי וירגיליוס אל דוחפי הסלעים');
     TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { if (plutus) liven(plutus, false);
       say('plutus', () => note(9), true); say('v_plutus', () => { plutusDown = 0; route('c4'); }, true); } },
       { at: p(38.3, 59.5, L4), r: 3, run: () => { say('c4_in', null, true); say('d_c4', () => { c4On = true; hud('נסה לדבר עם שלושה מדוחפי הסלעים · 0/3'); }, true); } });
@@ -690,7 +693,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
   function leaveAvarice() { lockY = null; hud('רד במדרגות אל הביצה'); route('c4out'); TRIG.push({ at: p(36.5, 89.6, L5 + 0.4), r: 1.5, run: enterStyx }); }
   function enterStyx() {
-    phase = 'styx'; save('styx'); title('הסטיקס', 'המעגל החמישי'); lockY = null; hud('עלה לסירה של פלגיאס');
+    hush(); phase = 'styx'; save('styx'); title('הסטיקס', 'המעגל החמישי'); lockY = null; hud('עלה לסירה של פלגיאס');
     if (b2) placeB2(91.5); sail2 = 0; yaw = rad(91.5) + Math.PI; pitch = -0.05;
     if (guide && b2) { guideRide = true; seat2(0.35, tv); b2.attach(guide); guide.position.copy(b2.worldToLocal(tv.clone())); }
     say('c5_in', null, true); say('phlegyas', () => note(11), true); say('v_phleg', () => hud(''), true);
