@@ -151,6 +151,8 @@
   #gText { font-size:clamp(18px,2.3vw,25px); line-height:1.4; }
   #gNote { position:fixed; top:14px; right:16px; z-index:5; display:none; border:1px solid var(--line); background:rgba(8,5,4,.55); border-radius:999px; padding:6px 16px; font-size:14px; color:var(--gold); transition:background .4s, color .4s; }
   body.playing #gNote, body.playing #gHint { display:block; }
+  #gTask { position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:5; display:none; padding:6px 18px; border:1px solid var(--line); border-radius:999px; background:rgba(8,5,4,.55); color:var(--gold); font-size:15px; white-space:nowrap; }
+  #gTask.on { display:block; }
   #gNote.new { background:var(--gold); color:#1a0f08; }
   #gHint { position:fixed; top:16px; left:16px; z-index:5; display:none; font-size:12.5px; color:var(--dim); text-shadow:0 0 8px #000; transition:opacity 1.2s; pointer-events:none; }
   #gHint.seen:not(.paused) { opacity:0; }
@@ -213,12 +215,13 @@
 </dialog>
 <div id="gSub2"><span id="gWho2"></span><span id="gText2"></span></div>
 <div id="gSub" aria-live="polite"><span id="gWho"></span><span id="gText"></span></div>
+<div id="gTask"></div>
 <button id="gNote" type="button">המחברת 0/5</button>
 <div id="gHint">W A S D או גלגלת ללכת · עכבר להביט · Shift לרוץ · N למחברת <b>· לחיצה על המסך ממשיכה</b></div>
 <div id="gBook"><div><h2>המחברת</h2><p>השורות שנאספו בדרך. לחיצה סוגרת.</p><ul id="gList"></ul></div></div>
 <div id="gEnd"><div><h2>סוף הדוגמה</h2><p id="gEndN"></p><button type="button" onclick="location.reload()">לשחק שוב</button><a href="./">לאתר</a></div></div>
 <div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
-  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, ולמטה אל חוף האכרון. כמה דקות.</p>
+  <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, ולמטה אל חוף האכרון. שם צריך למלא את הסירה של כארון כדי לחצות. כמה דקות.</p>
   <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: צד שמאל של המסך ללכת, צד ימין להביט</p>
   <em lang="it">Lasciate ogne speranza, voi ch'intrate</em>
   <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
@@ -240,7 +243,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=9';
+import { createGame } from './game.js?v=12';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
 
 const VER = 18;
@@ -636,7 +639,7 @@ const first = parseInt(Q.get('station'), 10);
 const i0 = first >= 1 && first <= STOPS.length ? first - 1 : 0, part0 = parseInt(Q.get('part'), 10);
 go(i0, true, part0 >= 1 && part0 <= (STOPS[i0].parts || []).length ? part0 - 1 : -1);   // ?station=13&part=3: third ditch
 
-const game = createGame({ scene, camera, renderer, sound, detail, kept, LOD });
+const game = createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM });
 
 // --- frame loop -------------------------------------------------------------
 const clock = new THREE.Clock(), look = new THREE.Vector3();

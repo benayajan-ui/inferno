@@ -22,7 +22,15 @@ const LINES = {
   soul2:    ['נשמה', 'רצתי אחרי כל דגל, ואף אחד מהם לא היה שלי.'],
   charon:   ['כארון', 'אוי לכם, נשמות רשעות! ואתה, נשמה חיה, התרחק מן המתים!'],
   v_charon: ['וירגיליוס', 'כארון, אל תכעס. כך רוצים במקום שבו יכולים כל מה שרוצים.'],
-  v_end:    ['וירגיליוס', 'הסירה מחכה. מעבר לנהר מתחיל המעגל הראשון.'],
+  v_task:   ['וירגיליוס', 'הוא לא יפליג בסירה ריקה. הער שלוש נשמות שכבר מחכות על שפת המים. לא את הרצים.'],
+  s_a:      ['נשמה', 'סוף סוף. חיכיתי כאן כל כך הרבה זמן.'],
+  s_b:      ['נשמה', 'אני מפחד מהמים, ובכל זאת אני רוצה לעבור.'],
+  s_c:      ['נשמה', 'קח אותי מכאן. כל מקום עדיף על החוף הזה.'],
+  d_a:      ['נשמה', 'אני לא יכול לעצור. הדגל!'],
+  d_b:      ['נשמה', 'אל תעכב אותי. הוא בורח!'],
+  charon_go:['כארון', 'הסירה מלאה. עלה, נשמה חיה, ושתוק.'],
+  v_boat:   ['וירגיליוס', 'אל תביט במים. בצד השני מחכים מי שלא חטאו, ובכל זאת לא יראו את האור.'],
+  v_land:   ['וירגיליוס', 'כאן יורדים. המדרגות האלה מובילות אל המעגל הראשון.'],
 };
 // the notebook: the poem Dante is writing as he goes
 const NOTES = [
@@ -33,7 +41,7 @@ const NOTES = [
   ['Caron dimonio, con occhi di bragia', 'כארון השד, שעיניו גחלים', 'ג׳, 109'],
 ];
 
-export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }) {
+export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM }) {
   const game = { active: false, ended: false };
   const $ = (id) => document.getElementById(id);
   const ray = new THREE.Ray(), DOWN = new THREE.Vector3(0, -1, 0), v = new THREE.Vector3(), v2 = new THREE.Vector3();
@@ -44,7 +52,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
 
   // --- collision: the rock, the stairs and the gate become one invisible mesh with a BVH ---------
   function buildCollider() {
-    const SOLID = /^(Funnel_|Entrance_(Steps|Tunnel|Backing|HellGate)|Kerb_|Gate_(Pillar|Lintel))/, chunks = []; let n = 0;
+    const SOLID = /^(Funnel_|Entrance_(Steps|Tunnel|Backing|HellGate)|Kerb_|Stair_|Gate_(Pillar|Lintel))/, chunks = []; let n = 0;
     scene.updateMatrixWorld(true);
     scene.traverse((o) => {
       if (!o.isMesh || o.isInstancedMesh) return;
@@ -70,7 +78,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     let nx = pos.x + dx, nz = pos.z + dz;
     const gy = groundAt(nx, pos.y, nz);
     if (gy === null || gy > pos.y + 0.6 || gy < pos.y - 1.6) return true;          // too high a step, or a drop
-    if (gy < -10.4 && gy > -12.8) { const r = Math.hypot(nx, nz); if (r < 52.86) { nx *= 52.86 / r; nz *= 52.86 / r; } }   // the Acheron
+    if (gy < -10.4 && gy > -12.8) { const r = Math.hypot(nx, nz);                    // the Acheron: you stay on the bank you are on
+      if (r < 52.86 && r > 50.98) { const side = Math.hypot(pos.x, pos.z) > 52 ? 52.86 : 50.98; nx *= side / r; nz *= side / r; } }
     pos.x = nx; pos.z = nz; pos.y += (gy - pos.y) * 0.5;
     return false;
   }
@@ -92,7 +101,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
         w.fromArray(e.base, i * 16 + 12).applyMatrix4(e.low.matrixWorld);
         const r = Math.hypot(w.x, w.z); if (r < 50) continue;
         const a = (Math.atan2(-w.z, w.x) * 180 / Math.PI + 360) % 360;
-        if (Math.abs(w.y - ZF) < 1.2 && a > 110 && a < 153 && r > 52.7 && r < 53.75) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, zero); changed = true; gone++; continue; }
+        if (Math.abs(w.y - ZF) < 1.2 && a > 98 && a < 153 && r > 52.7 && r < 53.75) { e.base.fill(0, i * 16, i * 16 + 16); e.low.setMatrixAt(i, zero); changed = true; gone++; continue; }
         const k = cell(w.x, w.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(w.x, w.y, w.z);
       }
       if (changed) e.low.instanceMatrix.needsUpdate = true;
@@ -110,6 +119,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y;
     let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
     if (keys.has('ArrowLeft')) yaw += dt * 1.9; if (keys.has('ArrowRight')) yaw -= dt * 1.9;
+    if (phase === 'sail') return ride(dt);
     const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
     const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 5.6 : 3.1) * dt;
     const sin = Math.sin(yaw), cos = Math.cos(yaw);
@@ -132,7 +142,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   const PATH = [[g(76.6, 0.9, 0), 1], [g(72.6, 0.2, 0), 0], [g(70, 0, stairY(70)), 1], [g(66, 0, stairY(66)), 0], [g(62, 0, stairY(62)), 1],
     [g(58, 0, stairY(58)), 0], [g(55.2, 0, ZF), 1], [p(53.5, 148.6, ZF), 0], [p(53.35, 145.5, ZF), 1], [p(53.3, 141, ZF), 0],
     [p(53.3, 136, ZF), 1], [p(53.25, 130, ZF), 0], [p(53.25, 124.6, ZF), 1]];
-  let guide = null, guideAt = 0, guideLight = null, guideHi = false;
+  let guide = null, guideAt = 0, guideLight = null, guideHi = false, guideRide = false;
   function setupGuide() {
     for (const o of kept) if (/^(Dante_(Wood|Gate|Acheron)|Virgil_(Wood|Acheron))$/.test(o.userData.name)) o.visible = false;   // you are Dante
     const src = kept.find((o) => o.userData.name === 'Virgil_Gate'); if (!src) return;
@@ -143,6 +153,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   }
   function moveGuide(dt) {
     if (!guide) return;
+    if (guideRide) { guide.getWorldPosition(v); guideLight.position.set(v.x, v.y + 2.1, v.z); if (phase === 'landed') face(guide, pos.x - v.x, pos.z - v.z, dt * 3); return; }
     if (!guideHi && detail.has(guide.userData.meshKey)) { const [geo, mat] = detail.get(guide.userData.meshKey)[0]; guide.geometry = geo; guide.material = mat; guideHi = true; }
     const target = PATH[guideAt][0], d = v.copy(target).sub(guide.position), dist = d.length();
     if (dist > 0.03) { guide.position.addScaledVector(d, Math.min(1, 2.7 * dt / dist)); if (dist > 0.3) face(guide, d.x, d.z, dt * 5); }
@@ -195,10 +206,10 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     return o;
   }
   // pull the statue nearest to a point out of its instanced batch, so it can move on its own
-  function extract(at, reach = 2.4) {
+  function extract(at, reach = 2.4, only = null) {
     let best = null, bd = reach; const w = new THREE.Vector3();
     for (const e of LOD) {
-      if (!/^Fig_/.test(e.key) || /Lying|Crawl|Flying/.test(e.key)) continue;
+      if (!/^Fig_/.test(e.key) || /Lying|Crawl|Flying/.test(e.key) || (only && !only.test(e.key))) continue;
       let moving = false; for (let q = e.low.parent; q; q = q.parent) if ((q.userData.name || '').startsWith('ANIM_')) moving = true;
       if (moving) continue;
       for (let i = 0; i < e.low.count; i++) { if (e.base[i * 16 + 15] === 0) continue;
@@ -250,11 +261,67 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF)); note(3); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
     { at: p(53.25, 126, ZF), r: 3.6, run: () => { const c = find('Charon'); if (c) liven(c, false);
-        say('charon', () => note(4), true); say('v_charon', null, true); say('v_end', end, true); } },
+        say('charon', () => note(4), true); say('v_charon', null, true); say('v_task', () => { questOn = true; task(); }, true); } },
   ];
   function triggers() { for (const t of TRIG) if (!t.done && Math.hypot(t.at.x - pos.x, t.at.z - pos.z) < t.r && Math.abs(t.at.y - pos.y) < (t.top ? 1.2 : 3)) { t.done = true; t.run(); } }
 
-  function end() { game.ended = true; $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
+  // --- Charon's boat: it will not sail empty. Wake three souls who already wait at the water's edge; they board, then you may ---
+  const BOAT_R = 51.85, DOCK = 120, LAND = 83.7, BOAT_YAW = 0.7388;                       // the hull is turned 42 degrees inside its group
+  let boat = null, boatA = DOCK, boatY = 0, phase = 'walk', aboard = 0, sailT = 0, side = -1, questOn = false, canBoard = false, nag = 0;
+  const quest = [], tv = new THREE.Vector3();
+  const seat = (u, out) => { const a = rad(boatA); return out.set(boat.position.x + Math.sin(a) * u, boatY - 0.12, boat.position.z + Math.cos(a) * u); };
+  function placeBoat(a) { boatA = a; const q = p(BOAT_R, a, 0); boat.position.x = q.x; boat.position.z = q.z; boat.rotation.set(0, rad(a) - Math.PI / 2 - BOAT_YAW, 0); }
+  function setupBoat() {
+    boat = ANIM.CharonBoat && ANIM.CharonBoat.o; if (!boat) return; delete ANIM.CharonBoat;        // the game steers it from here on
+    boatY = boat.position.y; placeBoat(DOCK);
+    const c = find('Charon'); if (c) { boat.updateMatrixWorld(true); c.getWorldPosition(v); const a = rad(boatA); side = (v.x - boat.position.x) * Math.sin(a) + (v.z - boat.position.z) * Math.cos(a) > 0 ? -1 : 1; }
+  }
+  function setupQuest() {
+    // three who wait at the water (right) and two who still run after the flag (wrong), a little past Charon
+    const spec = [[116, 1, 's_a', 0.1], [113.4, 0, 'd_a'], [110.5, 1, 's_b', 0.6], [107.3, 0, 'd_b'], [104.5, 1, 's_c', 1.1]];
+    for (const [a, ok, line, u] of spec) {
+      const o = extract(p(53.2, a, ZF), 4.5, ok ? /Despair|Kneeling|WalkBowed/ : /Running/); if (!o) continue;
+      const q = p(ok ? 52.98 : 54.0, a, 0); o.position.x = q.x; o.position.z = q.z;
+      if (ok) o.rotation.y = Math.atan2(-q.x, -q.z);                                      // they stand looking at the river
+      quest.push({ o, ok, line, u: (u || 0) * side });
+    }
+  }
+  function task() { $('gTask').textContent = !questOn ? '' : aboard < 3 ? `הער שלוש נשמות שמחכות על שפת המים · ${aboard}/3` : 'הסירה מלאה. עלה אליה'; $('gTask').classList.toggle('on', questOn); }
+  function runQuest(dt) {
+    if (!boat || phase !== 'walk') return;
+    if (questOn) { for (const q of quest) { if (q.done) continue;
+        if (Math.hypot(q.o.position.x - pos.x, q.o.position.z - pos.z) < 2.1) { q.done = true; liven(q.o, true); murmur(q.line, q.o.position); q.wait = 2.6; } }
+      if (aboard < 3 && (nag += dt) > 55) { nag = -1e9; say('v_task'); } }
+    for (const q of quest) { if (!q.ok || !q.done || q.on) continue;
+      if ((q.wait -= dt) > 0) continue;                                                   // it speaks first, then walks to the boat
+      const al = alive.find((x) => x.o === q.o); if (al) al.turn = false;
+      seat(q.u, tv); const dx = tv.x - q.o.position.x, dz = tv.z - q.o.position.z, d = Math.hypot(dx, dz);
+      if (d > 0.08) { const st = Math.min(d, 1.5 * dt); q.o.position.x += dx / d * st; q.o.position.z += dz / d * st; q.o.position.y += (tv.y - q.o.position.y) * Math.min(1, dt * 3); face(q.o, dx, dz, dt * 5); }
+      else { q.on = true; boat.attach(q.o); aboard++; task(); if (aboard === 3) { canBoard = true; say('charon_go', null, true); } } }
+    if (canBoard && Math.hypot(boat.position.x - pos.x, boat.position.z - pos.z) < 2.4) board();
+  }
+  function board() {
+    phase = 'sail'; sailT = 0; canBoard = false; questOn = false; task();
+    yaw = rad(boatA) + Math.PI; pitch = -0.08;                                           // you sit at the far end from Charon, looking the way the boat goes
+    if (guide) { guideRide = true; seat(-0.4 * side, tv); boat.attach(guide); guide.position.copy(boat.worldToLocal(tv.clone())); }
+    say('v_boat', null, true);
+  }
+  function ride(dt) {
+    sailT += dt; const total = (DOCK - LAND) * Math.PI / 180 * BOAT_R / 1.8, k = Math.min(1, sailT / total), e = k * k * (3 - 2 * k);
+    placeBoat(DOCK + (LAND - DOCK) * e); boat.position.y = boatY + Math.sin(sailT * 1.3) * 0.03;
+    seat(1.7 * side, pos); pos.y += 0.05;
+    camera.position.set(pos.x, pos.y + EYE - 0.25 + Math.sin(sailT * 1.3) * 0.03, pos.z); camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    if (k === 1) land();
+  }
+  // the stair to the first circle starts on the inner bank at 84 degrees and runs down to 89 (measured in Blender)
+  function land() {
+    phase = 'landed'; const q = p(50.55, 84.2, 0), gy = groundAt(q.x, ZF, q.z); pos.set(q.x, gy === null ? ZF : gy, q.z);
+    yaw = Math.atan2(-Math.sin(rad(84.2)), -Math.cos(rad(84.2))) + Math.PI;               // look down the stair, towards 89 degrees
+    if (guide) { scene.attach(guide); const w = p(50.5, 90.4, 0), wy = groundAt(w.x, -14.2, w.z); guide.position.set(w.x, wy === null ? -14.8 : wy, w.z); guide.rotation.set(0, guide.rotation.y, 0); }
+    say('v_land', null, true); TRIG.push({ at: p(50.5, 89.3, -14.8), r: 1.3, run: end });
+  }
+
+  function end() { game.ended = true; $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · המעגל הראשון בהמשך`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
   function bind() {
@@ -285,10 +352,10 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
   }
 
   game.start = () => {
-    buildCollider();
+    buildCollider(); setupBoat();
     // the two souls that will speak are taken out of the crowd first and stood by the rock wall, clear of the walking lane
     for (const a of [142.4, 132.8]) { const o = extract(p(53.3, a, ZF), 3.2); if (o) { const q = p(54.0, a, 0); o.position.x = q.x; o.position.z = q.z; } souls.push(o); }
-    clearLane(); setupGuide(); bind();
+    setupQuest(); clearLane(); setupGuide(); bind();
     camera.near = 0.07; camera.fov = 68; camera.updateProjectionMatrix();
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
     yaw = Math.atan2(pos.x, pos.z);                                                     // face the pit: the gate is straight ahead
@@ -297,8 +364,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD }
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); speak(dt); murmuring(dt); stir(dt); };
+  game.update = (dt) => { if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); speak(dt); murmuring(dt); stir(dt); };
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
