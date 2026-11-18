@@ -190,7 +190,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const timers = []; const later = (t, fn) => timers.push({ t, fn });
   function ticking(dt) { for (let i = timers.length - 1; i >= 0; i--) if ((timers[i].t -= dt) <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   // a circle's stair stays shut until its task is done: you cannot go more than a metre below the floor you are on
-  let lockY = null, lockMsg = 0, gateHold = false, cineWait = -1; const lastOk = new THREE.Vector3();
+  let lockY = null, lockMsg = 0, gateHold = false, cineWait = -1, hold = null; const lastOk = new THREE.Vector3();
   function lock(floor) { lockY = Math.min(floor, pos.y) - 1.0; lastOk.copy(pos); }
   function blocked() { if (performance.now() < lockMsg) return; lockMsg = performance.now() + 4500; const el = $('gTask'), was = el.textContent, on = el.classList.contains('on');
     const msg = 'המדרגות סגורות. קודם משלימים את המשימה כאן'; el.textContent = msg; el.classList.add('on'); knock();
@@ -269,6 +269,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const gy = groundAt(pos.x, pos.y, pos.z); if (gy !== null) pos.y += (gy - pos.y) * Math.min(1, dt * 14);
     if (lockY !== null && pos.y < lockY) { pos.copy(lastOk); blocked(); }
     else if (gateHold && pos.y > -1 && Math.hypot(pos.x, pos.z) < 75.2) pos.copy(lastOk);       // Virgil has not finished at the gate
+    else if (hold && Math.hypot(pos.x - hold.x, pos.z - hold.z) > hold.r) pos.copy(lastOk);          // a pause: stay by Virgil while he explains
     else lastOk.copy(pos);
     camera.position.set(pos.x, pos.y + EYE - crouch + Math.sin(bob) * 0.028, pos.z);
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
@@ -321,7 +322,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (m.t > m.max || d > 11) { m.a.pause(); murmurs.splice(i, 1); if (!murmurs.length) $('gSub2').classList.remove('on'); if (m.after) m.after(); } }
   }
   // a new stage begins in silence: whatever was still being said, or waiting to be said, in the last one is dropped
-  function hush() { queue.length = 0; if (speaking) { if (speaking.audio) speaking.audio.pause(); speaking = null; } $('gSub').classList.remove('on');
+  function hush() { hold = null; queue.length = 0; if (speaking) { if (speaking.audio) speaking.audio.pause(); speaking = null; } $('gSub').classList.remove('on');
     for (const m of murmurs) m.a.pause(); murmurs.length = 0; $('gSub2').classList.remove('on'); }
   function speak(dt) {
     if (speaking) { speaking.t += dt; if (speaking.done || speaking.t > speaking.max) { $('gSub').classList.remove('on'); if (speaking.after) speaking.after(); speaking = null; } return; }
@@ -660,7 +661,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     hush(); phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('לך אחרי וירגיליוס אל דוחפי הסלעים');
     TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { if (plutus) liven(plutus, false);
       say('plutus', () => note(9), true); say('v_plutus', () => { plutusDown = 0; route('c4'); }, true); } },
-      { at: p(38.3, 59.5, L4), r: 3, run: () => { say('c4_in', null, true); say('d_c4', () => { c4On = true; hud('נסה לדבר עם שלושה מדוחפי הסלעים · 0/3'); }, true); } });
+      { at: p(38.3, 59.5, L4), r: 3, run: () => { hold = { x: pos.x, z: pos.z, r: 1.6 }; hud('עצור ליד וירגיליוס');
+        say('c4_in', null, true); say('d_c4', () => { hold = null; c4On = true; hud('נסה לדבר עם שלושה מדוחפי הסלעים · 0/3'); }, true); } });
   }
   const dull = [], rows = []; let rowT = 0, firstTry = true;
   function runAvarice(dt) {
