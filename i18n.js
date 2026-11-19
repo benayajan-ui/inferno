@@ -103,6 +103,7 @@
     'מתוך': ['of', 'di'],
     'שורות במחברת': ['lines in the notebook', 'versi nel taccuino'],
     'דקות': ['minutes', 'minuti'],
+    'דקה אחת': ['1 minute', '1 minuto'],
     'לך אחרי וירגיליוס אל השער': ['Follow Virgil to the gate', 'Segui Virgilio fino alla porta'],
     'היער האפל': ['The Dark Wood', 'La selva oscura'],
     'בחצי דרכם של חיינו': ['Midway on the road of our life', 'Nel mezzo del cammin di nostra vita'],

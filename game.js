@@ -850,7 +850,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: tr('תהום הגיהנום') }).catch(() => {}); return; }
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'inferno.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
   }
-  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = tr(title); try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} ${tr('מתוך')} ${NOTES.length} ${tr('שורות במחברת')} · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} ${tr('דקות')}`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
+  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = tr(title); try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} ${tr('מתוך')} ${NOTES.length} ${tr('שורות במחברת')} · ${((m) => (m === 1 ? tr('דקה אחת') : m + ' ' + tr('דקות')))(Math.max(1, Math.round((performance.now() - t0) / 60000)))}`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
   function bind() {
