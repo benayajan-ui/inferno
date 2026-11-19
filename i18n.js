@@ -8,7 +8,8 @@
   let lang = null;
   try { lang = localStorage.getItem(KEY); } catch (e) {}
   if (q && LANGS[q]) { lang = q; try { localStorage.setItem(KEY, q); } catch (e) {} }
-  if (!LANGS[lang]) lang = 'he';
+  // a first visit opens in the browser's language: Hebrew, Italian, otherwise English
+  if (!LANGS[lang]) { const n = (navigator.languages && navigator.languages[0]) || navigator.language || 'he'; lang = /^(he|iw)/i.test(n) ? 'he' : /^it/i.test(n) ? 'it' : 'en'; }
   const col = lang === 'en' ? 0 : lang === 'it' ? 1 : -1;
   document.documentElement.lang = lang; document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
 
@@ -81,7 +82,13 @@
     'חזרה לאתר': ['Back to the site', 'Torna al sito'],
     'דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה דרך חמשת המעגלים הראשונים, עד שער העיר דיס. כעשרים דקות.': ['A first demo of the game: you are Dante. Follow Virgil from the wood, through the gate, to the shore of the Acheron, across in Charon\'s boat, and down through the first five circles to the gate of the city of Dis. About twenty minutes.', 'Una prima demo del gioco: tu sei Dante. Segui Virgilio dalla selva, attraverso la porta, fino alla riva dell\'Acheronte, sulla barca di Caronte, e giù per i primi cinque cerchi, fino alla porta della città di Dite. Circa venti minuti.'],
     'מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר': ['Keyboard: W A S D or the mouse wheel to walk · Mouse to look · Shift to run · N for the notebook · Esc to release the mouse', 'Tastiera: W A S D o rotella del mouse per camminare · Mouse per guardare · Shift per correre · N per il taccuino · Esc per liberare il mouse'],
-    'טלפון: צד שמאל של המסך ללכת, צד ימין להביט': ['Phone: left side of the screen to walk, right side to look', 'Telefono: lato sinistro dello schermo per camminare, lato destro per guardare'],
+    'טלפון: אצבע בצד שמאל של המסך מזיזה אותך לכל כיוון, אצבע בצד ימין מסובבת את המבט · שלט משחק נתמך': ['Phone: a finger on the left side of the screen moves you in any direction, a finger on the right side turns your view · Game controllers are supported', 'Telefono: un dito sul lato sinistro dello schermo ti muove in ogni direzione, un dito sul lato destro gira lo sguardo · I controller sono supportati'],
+    'אצבע בצד שמאל: הליכה לכל כיוון · אצבע בצד ימין: מבט': ['Left thumb: walk any way · Right thumb: look', 'Dito a sinistra: cammina · Dito a destra: guarda'],
+    'דלג': ['Skip', 'Salta'],
+    'מומלץ לסובב את הטלפון לרוחב': ['Best played with the phone turned sideways', 'Meglio giocare con il telefono in orizzontale'],
+    'תעודת סיום': ['Certificate', 'Attestato'],
+    'מן היער האפל עד שער העיר דיס': ['From the dark wood to the gate of the city of Dis', 'Dalla selva oscura alla porta della città di Dite'],
+    'ומשם יצאנו לראות שוב את הכוכבים.': ['And from there we came out to see the stars again.', 'E quindi uscimmo a riveder le stelle.'],
     'להתחיל ללכת': ['Start walking', 'Inizia a camminare'],
     'להתחיל מכאן': ['Start from here', 'Inizia da qui'],
     'להמשיך מהמעגל הראשון': ['Continue from the first circle', 'Continua dal primo cerchio'],
@@ -181,7 +188,7 @@
   html[dir=ltr] #dots { direction:ltr; }
   html.site[dir=ltr] #paint { left:70px; } html.site[dir=ltr] #snd { left:178px; } html.site[dir=ltr] #gameLink { left:256px; }
   html[lang=en] #gTask::before { content:"YOUR TASK"; } html[lang=it] #gTask::before { content:"IL TUO COMPITO"; }
-  @media (max-width:720px) { html.site[dir=ltr] #credit { left:auto; right:10px; } html.site[dir=ltr] #paint { left:auto; right:64px; } html.site[dir=ltr] #snd { left:auto; right:170px; } }`;
+  @media (max-width:720px) { html.site[dir=ltr] #credit { left:14px; top:40px; } html.site[dir=ltr] #paint { left:70px; top:40px; } html.site[dir=ltr] #snd { left:178px; top:40px; } }`;
   document.head.appendChild(css); if (document.getElementById('gameLink')) document.documentElement.classList.add('site');
   apply();
   for (const sel of ['#load > div', '#gPause > div', '#credits']) { const host = document.querySelector(sel); if (host) host.appendChild(picker()); }

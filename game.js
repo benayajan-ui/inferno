@@ -215,6 +215,24 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
   }
+  function sweep(type, f0, f1, dur, gain, delay = 0, lp = 600) {
+    const c = sound.ctx; if (!c || !sound.on || c.state !== 'running') return;
+    const o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime + delay; o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); f.type = 'lowpass'; f.frequency.value = lp;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  const gateSound = () => { sweep('sawtooth', 74, 40, 2.6, 0.13, 0.4, 320); sweep('square', 37, 31, 2.2, 0.05, 0.6, 180); setTimeout(() => noise(1.1, 110, 0.3, 0.9), 3000); };   // the gate of Dis grinds open
+  let sfxT = 2;
+  function sfx(dt) {
+    sfxT -= dt; if (sfxT > 0 || game.paused || game.ended) return;
+    if (phase === 'sail' || (phase === 'styx' && sail2 >= 0)) { noise(0.55, 560 + Math.random() * 160, 0.07, 0.7); sfxT = 1.7; }               // the oars
+    else if (phase === 'gluttony' && c3On && !fed && cerb) { cerb.getWorldPosition(v2); const d = Math.hypot(v2.x - pos.x, v2.z - pos.z);
+      if (d < 15) { const g = 0.11 * Math.max(0.25, 1 - d / 15); sweep('sawtooth', 118, 60, 0.55, g, 0, 520); sweep('sawtooth', 96, 52, 0.62, g * 0.8, 0.2, 420); noise(0.32, 900, g * 0.5, 1.5); }   // three throats
+      sfxT = 3 + Math.random() * 3; }
+    else if (phase === 'lust') { noise(2.6, 400 + Math.random() * 320, 0.06, 0.5); sfxT = 3.4 + Math.random() * 3; }                           // gusts of the storm
+    else sfxT = 0.5;
+  }
   const footstep = () => noise(0.09, 320 + Math.random() * 260, 0.11, 0.8);
   const chime = () => { tone(523, 1.1, 0.035); tone(784, 1.3, 0.03, 0.12); tone(1046, 1.6, 0.02, 0.26); noise(0.5, 2400, 0.02, 3); };   // stone waking
   const knock = () => { noise(0.22, 140, 0.22, 1.2); tone(92, 0.5, 0.05); };                                                  // stone staying stone
@@ -250,16 +268,26 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (on) { keys.clear(); if (document.pointerLockElement) document.exitPointerLock(); } else if (game.lock && !matchMedia('(pointer: coarse)').matches) game.lock();
   }
 
+  const padWas = {}, padAx = { x: 0, y: 0, run: false };
+  function pad(dt) {
+    padAx.x = padAx.y = 0; padAx.run = false; if (!navigator.getGamepads) return; let gp = null; for (const q of navigator.getGamepads()) if (q && q.connected) { gp = q; break; } if (!gp) return;
+    const dz = (x) => (Math.abs(x) < 0.18 ? 0 : x), hit = (i) => { const on = !!(gp.buttons[i] && gp.buttons[i].pressed), was = padWas[i]; padWas[i] = on; return on && !was; };
+    if (hit(9)) setPaused(!game.paused); if (hit(3)) $('gBook').classList.toggle('on');
+    if (hit(0)) { if (film && film.t > 0.4) endFilm(); else if (cine && !cine.out) cine.out = true; }
+    if (game.paused) return;
+    padAx.x = dz(gp.axes[0] || 0); padAx.y = dz(gp.axes[1] || 0); padAx.run = !!((gp.buttons[7] && gp.buttons[7].pressed) || (gp.buttons[10] && gp.buttons[10].pressed));
+    yaw -= dz(gp.axes[2] || 0) * dt * 2.4; pitch = Math.max(-1.3, Math.min(1.3, pitch - dz(gp.axes[3] || 0) * dt * 1.8));
+  }
   function walk(dt) {
-    let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y;
-    let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x;
+    let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y - padAx.y;
+    let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x + padAx.x;
     if (keys.has('ArrowLeft')) yaw += dt * 1.9; if (keys.has('ArrowRight')) yaw -= dt * 1.9;
     if (phase === 'cine') return runCine(dt);
     if (phase === 'film') return runFilm(dt);
     if (phase === 'sail') return ride(dt);
     if (phase === 'styx') return ride2(dt);
     const m = Math.hypot(f, s); if (m > 1) { f /= m; s /= m; }
-    const speed = (wakeT >= 0 && wakeT < 2.6 ? 0 : keys.has('ShiftLeft') || keys.has('ShiftRight') ? 5.6 : 3.1) * dt;
+    const speed = (wakeT >= 0 && wakeT < 2.6 ? 0 : keys.has('ShiftLeft') || keys.has('ShiftRight') || padAx.run ? 5.6 : 3.1) * dt;
     const sin = Math.sin(yaw), cos = Math.cos(yaw);
     const roll = coast * Math.min(1, dt * 2.6); coast -= roll;                          // the wheel: a push forward or back that eases out
     const dx = (-sin * f + cos * s) * speed - sin * roll, dz = (-cos * f - sin * s) * speed - cos * roll;
@@ -629,6 +657,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     intro:  { src: 'film/intro.mp4', who: tr('דנטה'), text: tr('באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.'), t0: 0.8, talk: 5.2, len: 9.2, voice: 'intro' },
     lovers: { src: 'film/lovers.mp4', who: LINES.francesca[0], text: LINES.francesca[1], t0: 0.4, talk: 16.8, len: 18.1, voice: 'francesca' },
     dis:    { src: 'film/dis.mp4', who: '', text: '', t0: 0, talk: 0, len: 5.2 },
+    stars:  { src: 'film/stars.mp4', who: tr('דנטה'), text: tr('ומשם יצאנו לראות שוב את הכוכבים.'), t0: 5.0, talk: 3.2, len: 9.25, voice: 'stars', vo: true },   // the way out, at the very end
   };
   let film = null;
   function startFilm(name, after) {
@@ -636,8 +665,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     film = { el, def, prev, after, t: 0, done: false, silent: false, parts: def.text ? def.text.split(/(?<=[.,])\s+/) : [] };
     if (!el.src.endsWith(def.src)) el.src = def.src;
     // the films carry the Hebrew narration; in the other languages the film plays silent and the recorded line is played over it
-    if (LANG !== 'he' && def.voice) { const a = new Audio(`${VOICE}${def.voice}.mp3`); a.volume = sound.on ? 1 : 0; a.addEventListener('error', () => { if (film) film.vo = null; }); film.vo = a; }
-    el.muted = !sound.on || LANG !== 'he'; try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
+    if ((LANG !== 'he' || def.vo) && def.voice) { const a = new Audio(`${VOICE}${def.voice}.mp3`); a.volume = sound.on ? 1 : 0; a.addEventListener('error', () => { if (film) film.vo = null; }); film.vo = a; }
+    el.muted = !sound.on || LANG !== 'he' || !!def.vo; if (name === 'dis') gateSound(); try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
     const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });
   }
   function runFilm(dt) {
@@ -657,7 +686,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     phase = film.prev; film = null; if (after) after();
   }
   addEventListener('keydown', (e) => { if (e.code === 'Space' && film && film.t > 1) endFilm(); });
-  $('gFilm').addEventListener('pointerdown', () => { if (film && film.t > 1) endFilm(); });
+  $('gSkip').addEventListener('click', () => { if (film && film.t > 0.4) endFilm(); });
 
   // the figures the game handles one by one are shown in their detailed version as soon as it has loaded
   let upT = 0;
@@ -799,11 +828,28 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (stoned > 3.8) { stoned = -1; f.style.background = '#000'; f.style.opacity = 0; hud('הסתובב והפנה את הגב למגדל'); say('stone', () => { medT = 0; }, true); } }
     if (angelT >= 0 && angel) { angelT += dt; const k = Math.min(1, angelT / 6), e = k * k * (3 - 2 * k), q = p(35.4 - 0.75 * e, 80 - (80 - 55.6) * e, 0);
       angel.position.x = q.x; angel.position.z = q.z;
-      if (k === 1) { angelT = -1; hud(''); say('angel', () => startFilm('dis', () => { for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); }), true); } }
+      if (k === 1) { angelT = -1; hud(''); say('angel', () => startFilm('dis', () => { for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => startFilm('stars', () => end('סוף הפרק הראשון')), true); }), true); } }
     if (doorT >= 0) { doorT += dt; for (const d of doors) d.position.y -= dt * 0.9;                                    // the doors sink away
-      if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); } }
+      if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => startFilm('stars', () => end('סוף הפרק הראשון')), true); } }
   }
 
+  function certificate() {
+    const W = 1200, H = 1600, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), rtl = LANG === 'he';
+    x.fillStyle = '#efe2c4'; x.fillRect(0, 0, W, H); x.strokeStyle = '#7a5a26'; x.lineWidth = 3; x.strokeRect(36, 36, W - 72, H - 72); x.lineWidth = 1; x.strokeRect(50, 50, W - 100, H - 100);
+    x.textAlign = 'center'; x.fillStyle = '#2a1a10'; x.direction = rtl ? 'rtl' : 'ltr';
+    x.font = '700 84px "Bona Nova", "David", serif'; x.fillText(tr('תהום הגיהנום'), W / 2, 170);
+    x.font = '500 34px "Frank Ruhl Libre", "David", serif'; x.fillStyle = '#6b5540'; x.fillText(tr('מן היער האפל עד שער העיר דיס'), W / 2, 226);
+    x.fillStyle = '#b8402c'; x.fillRect(W / 2 - 60, 252, 120, 3);
+    x.fillStyle = '#2a1a10'; x.font = '500 30px "Frank Ruhl Libre", "David", serif'; x.fillText($('gEndN').textContent, W / 2, 304);
+    let y = 388; NOTES.forEach(([it, he, ref], k) => { if (!got.has(k)) return;
+      x.direction = 'ltr'; x.font = 'italic 500 33px "Cormorant Garamond", Georgia, serif'; x.fillStyle = '#2a1a10'; x.fillText(it, W / 2, y, W - 160);
+      x.direction = rtl ? 'rtl' : 'ltr'; x.font = '400 22px "Frank Ruhl Libre", "David", serif'; x.fillStyle = '#6b5540';
+      x.fillText((he ? he + ' · ' : '') + tr('התופת') + (rtl ? ', ' : ' ') + ref, W / 2, y + 32, W - 160); y += 86; });
+    x.direction = 'ltr'; x.font = '400 20px "Frank Ruhl Libre", serif'; x.fillStyle = '#806a52'; x.fillText(new Date().toLocaleDateString(LANG === 'he' ? 'he-IL' : LANG === 'it' ? 'it-IT' : 'en-GB') + ' · benayajan-ui.github.io/inferno', W / 2, H - 78);
+    c.toBlob((blob) => { if (!blob) return; const file = new File([blob], 'inferno.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: tr('תהום הגיהנום') }).catch(() => {}); return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'inferno.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
+  }
   function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = tr(title); try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} ${tr('מתוך')} ${NOTES.length} ${tr('שורות במחברת')} · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} ${tr('דקות')}`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
@@ -824,14 +870,21 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     document.addEventListener('mousemove', (e) => { if (!drag || document.pointerLockElement === el) return; yaw -= e.movementX * 0.004; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.004)); });
     document.addEventListener('pointerlockchange', () => { const on = !!document.pointerLockElement; if (hadLock && !on && !game.paused) setPaused(true); hadLock = on; });   // Esc frees the mouse and pauses
     document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== el) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.0022)); });
-    // touch: left half of the screen is a walking stick, right half turns the head
-    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) touches.set(t.identifier, { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, left: t.clientX < innerWidth / 2 }); }, { passive: true });
+    // touch: a stick appears under a finger on the left half of the screen and walks you any way you push it; the right half turns the head
+    const pad0 = $('gStick'), knob = pad0.firstElementChild, R = 58;
+    const rest = () => { pad0.classList.remove('on'); pad0.style.left = pad0.style.top = ''; knob.style.transform = ''; stick.x = stick.y = 0; };
+    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) { const left = t.clientX < innerWidth / 2 && ![...touches.values()].some((q) => q.left);
+      touches.set(t.identifier, { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, left });
+      if (left) { pad0.classList.add('on'); pad0.style.left = t.clientX + 'px'; pad0.style.top = t.clientY + 'px'; } } }, { passive: true });
     el.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (!s) continue;
-      if (s.left) { stick.x = Math.max(-1, Math.min(1, (t.clientX - s.x0) / 55)); stick.y = Math.max(-1, Math.min(1, (t.clientY - s.y0) / 55)); }
+      if (s.left) { let dx = t.clientX - s.x0, dy = t.clientY - s.y0; const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
+        knob.style.transform = `translate(${dx}px,${dy}px)`; const k = d < 9 ? 0 : 1 / R; stick.x = dx * k; stick.y = dy * k; }
       else { yaw -= (t.clientX - s.x) * 0.005; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * 0.005)); }
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
-    const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) stick.x = stick.y = 0; touches.delete(t.identifier); } };
+    const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
+    if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch'); $('gHint').firstChild.nodeValue = tr('אצבע בצד שמאל: הליכה לכל כיוון · אצבע בצד ימין: מבט') + ' '; }
+    $('gCert').addEventListener('click', (e) => { e.preventDefault(); certificate(); });
     $('gNote').addEventListener('click', () => $('gBook').classList.toggle('on'));
     $('gBook').addEventListener('click', () => $('gBook').classList.remove('on'));
     el.addEventListener('wheel', (e) => { if (!game.active || game.ended) return; e.preventDefault(); coast = Math.max(-6, Math.min(6, coast - Math.sign(e.deltaY) * 1.4)); }, { passive: false });
@@ -863,9 +916,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
+  game.update = (dt) => { pad(dt); sfx(dt); if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
   let spy = null;                                                                    // automated checks: look at the scene from a fixed point
   // for automated checks: jump to a place on the route
-  game.debug = { find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { certificate, film: (n) => startFilm(n, () => {}), end, find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
