@@ -269,6 +269,19 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (on) { keys.clear(); if (document.pointerLockElement) document.exitPointerLock(); } else if (game.lock && !matchMedia('(pointer: coarse)').matches) game.lock();
   }
 
+  // --- a phone is a window into the pit: turn it or tilt it and your eyes turn the same way (added to the finger and the stick) ---
+  const gyro = { on: false, bound: false, last: null };
+  try { gyro.on = localStorage.getItem('inferno_gyro') !== '0'; } catch (e) { gyro.on = true; }
+  { const e = new THREE.Euler(), q = new THREE.Quaternion(), q1 = new THREE.Quaternion(-Math.SQRT1_2, 0, 0, Math.SQRT1_2), q0 = new THREE.Quaternion(), Z = new THREE.Vector3(0, 0, 1);
+    gyro.read = (ev) => { if (ev.alpha === null || ev.beta === null || ev.gamma === null) return;
+      const o = rad((screen.orientation && screen.orientation.angle) || window.orientation || 0);
+      e.set(rad(ev.beta), rad(ev.alpha), -rad(ev.gamma), 'YXZ'); q.setFromEuler(e).multiply(q1).multiply(q0.setFromAxisAngle(Z, -o)); e.setFromQuaternion(q, 'YXZ');
+      const l = gyro.last; gyro.last = [e.y, e.x, o]; if (!l || l[2] !== o || !gyro.on || !game.active || game.paused) return;
+      let dy = e.y - l[0]; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); const dp = e.x - l[1];
+      if (Math.abs(dy) > 0.6 || Math.abs(dp) > 0.6) return;                                   // a jump (the phone points straight up or down, or was turned over), not a movement
+      yaw += dy; pitch = Math.max(-1.3, Math.min(1.3, pitch + dp)); };
+    gyro.start = () => { if (gyro.bound || !window.DeviceOrientationEvent) return; const go = () => { if (!gyro.bound) { gyro.bound = true; addEventListener('deviceorientation', gyro.read); } };
+      const D = window.DeviceOrientationEvent; if (typeof D.requestPermission === 'function') D.requestPermission().then((r) => { if (r === 'granted') go(); }).catch(() => {}); else go(); }; }   // an iPhone asks the player first
   const padWas = {}, padAx = { x: 0, y: 0, run: false };
   function pad(dt) {
     padAx.x = padAx.y = 0; padAx.run = false; if (!navigator.getGamepads) return; let gp = null; for (const q of navigator.getGamepads()) if (q && q.connected) { gp = q; break; } if (!gp) return;
@@ -345,6 +358,14 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
 
   // --- voices and subtitles: one line at a time, never locking the controls -------------------------
   const queue = []; let speaking = null;
+  // one player for every spoken line, and one for a film's narration: a phone lets a player sound without a touch only after it was once
+  // started by a touch, so both are started (silently) by the tap that begins the game
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+  const voiceEl = new Audio(), filmEl = new Audio(); voiceEl.preload = filmEl.preload = 'auto';
+  voiceEl.addEventListener('loadedmetadata', () => { if (speaking && speaking.audio === voiceEl && isFinite(voiceEl.duration) && voiceEl.duration > 0.3) speaking.max = voiceEl.duration + 0.5; });
+  voiceEl.addEventListener('ended', () => { if (speaking && speaking.audio === voiceEl) speaking.done = true; });
+  filmEl.addEventListener('error', () => { if (film && film.vo === filmEl && filmEl.src !== SILENT) film.vo = null; });
+  const unlockVoices = () => { for (const a of [voiceEl, filmEl]) { a.src = SILENT; const r = a.play(); if (r && r.catch) r.catch(() => {}); } };
   // a new line from the guide replaces one that is still waiting its turn, so the talk never lags behind the place
   function say(id, after, keep) { for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].keep) queue.splice(i, 1); queue.push({ id, after, keep }); }
   // souls do not wait in line: they speak from where they stand, quieter with distance, under the guide's voice
@@ -370,11 +391,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const [who, text] = LINES[next.id];
     $('gWho').textContent = who; $('gText').textContent = text; $('gSub').classList.add('on');
     speaking = { t: 0, max: 2.2 + text.length * 0.075, done: false, after: next.after };
-    const a = new Audio(`${VOICE}${next.id}.mp3`); a.volume = sound.on ? 1 : 0;
-    a.addEventListener('loadedmetadata', () => { if (speaking) speaking.max = a.duration + 0.5; });
-    a.addEventListener('ended', () => { if (speaking) speaking.done = true; });
+    const a = voiceEl; speaking.audio = a; a.src = `${VOICE}${next.id}.mp3`; a.volume = sound.on ? 1 : 0;
     a.play().catch(() => {});                                                          // no file or no sound: the subtitle still runs its time
-    speaking.audio = a;
   }
 
   // --- awakenings: a real statue leaves the frozen crowd. It turns to you, straightens, warms from marble to flesh, breathes
@@ -668,7 +686,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     film = { el, def, prev, after, t: 0, done: false, silent: false, parts: def.text ? def.text.split(/(?<=[.,])\s+/) : [] };
     if (!el.src.endsWith(def.src)) el.src = def.src;
     // the films carry the Hebrew narration; in the other languages the film plays silent and the recorded line is played over it
-    if ((LANG !== 'he' || def.vo) && def.voice) { const a = new Audio(`${VOICE}${def.voice}.mp3`); a.volume = sound.on ? 1 : 0; a.addEventListener('error', () => { if (film) film.vo = null; }); film.vo = a; }
+    if ((LANG !== 'he' || def.vo) && def.voice) { const a = filmEl; a.src = `${VOICE}${def.voice}.mp3`; a.volume = sound.on ? 1 : 0; film.vo = a; }
     el.muted = !sound.on || LANG !== 'he' || !!def.vo; if (name === 'dis') gateSound(); try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
     const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });
   }
@@ -891,7 +909,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
     const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
-    if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch'); }
+    if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch');
+      const b = $('gGyro'), label = () => { b.textContent = tr(gyro.on ? 'מבט לפי תנועת הטלפון: פועל' : 'מבט לפי תנועת הטלפון: כבוי'); b.setAttribute('aria-pressed', gyro.on); };
+      if (window.DeviceOrientationEvent) { b.hidden = false; label(); b.addEventListener('click', () => { gyro.on = !gyro.on; gyro.last = null; try { localStorage.setItem('inferno_gyro', gyro.on ? '1' : '0'); } catch (e) {} if (gyro.on) gyro.start(); label(); }); } }
     $('gCert').addEventListener('click', (e) => { e.preventDefault(); certificate(); });
     $('gNote').addEventListener('click', () => $('gBook').classList.toggle('on'));
     $('gBook').addEventListener('click', () => $('gBook').classList.remove('on'));
@@ -904,7 +924,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   let t0 = 0;
   game.saved = () => { try { return localStorage.getItem('inferno_cp'); } catch (e) { return null; } };
   game.start = (cp) => {
-    buildCollider(); setupBoat();
+    unlockVoices(); buildCollider(); setupBoat();
     // the two souls that will speak are taken out of the crowd first and stood by the rock wall, clear of the walking lane
     for (const a of [142.4, 132.8]) { const o = extract(p(53.3, a, ZF), 3.2); if (o) { const q = p(54.0, a, 0); o.position.x = q.x; o.position.z = q.z; } souls.push(o); }
     setupQuest(); setupStages(); clearLane(); setupGuide(); bind();
@@ -924,12 +944,12 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       startFilm('intro', () => { title('היער האפל', 'בחצי דרכם של חיינו'); say('v_start', null, true);
         say('v_gate', () => { root = false; title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1); hud('רד במנהרה אל שפת התהום, והבט למטה'); }, true);
         say('d_gate', null, true); say('v_gate2', null, true); }); }
-    if (!matchMedia('(pointer: coarse)').matches) game.lock();
+    if (!matchMedia('(pointer: coarse)').matches) game.lock(); else if (gyro.on) gyro.start();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
   game.update = (dt) => { pad(dt); sfx(dt); if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
   let spy = null;                                                                    // automated checks: look at the scene from a fixed point
   // for automated checks: jump to a place on the route
-  game.debug = { certificate, film: (n) => startFilm(n, () => {}), end, find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { gyro, certificate, film: (n) => startFilm(n, () => {}), end, find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }

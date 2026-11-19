@@ -39,6 +39,8 @@
     'קרדיטים': ['Credits', 'Crediti'],
     'הציור המקורי': ['Original painting', 'Dipinto originale'],
     'צליל: פועל': ['Sound: on', 'Suono: sì'],
+    'מבט לפי תנועת הטלפון: פועל': ['Look by moving the phone: on', 'Sguardo muovendo il telefono: sì'],
+    'מבט לפי תנועת הטלפון: כבוי': ['Look by moving the phone: off', 'Sguardo muovendo il telefono: no'],
     'צליל: כבוי': ['Sound: off', 'Suono: no'],
     'משחק (בהקמה)': ['Game (in progress)', 'Gioco (in lavorazione)'],
     'כל המעגל': ['Whole circle', 'Tutto il cerchio'],
