@@ -907,16 +907,17 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     document.addEventListener('mousemove', (e) => { if (!drag || document.pointerLockElement === el) return; yaw -= e.movementX * 0.004; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.004)); });
     document.addEventListener('pointerlockchange', () => { const on = !!document.pointerLockElement; if (hadLock && !on && !game.paused) setPaused(true); hadLock = on; });   // Esc frees the mouse and pauses
     document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== el) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.0022)); });
-    // touch: the stick jumps under a finger on the left half of a wide screen, or on the lower part of an upright one; a finger anywhere else turns the head
+    // touch: the stick jumps under a finger near its circle (the left half of a wide screen, the bottom middle of an upright one);
+    // a finger anywhere else turns the head, so a thumb can do it from the corners too, with or without the phone's own movement
     const pad0 = $('gStick'), knob = pad0.firstElementChild, R = 58;
     const rest = () => { pad0.classList.remove('on'); pad0.style.left = pad0.style.top = ''; knob.style.transform = ''; stick.x = stick.y = 0; stick.on = false; };
-    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) { const left = (innerHeight > innerWidth ? t.clientY > innerHeight * 0.6 : t.clientX < innerWidth / 2) && ![...touches.values()].some((q) => q.left);
+    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) { const left = (innerHeight > innerWidth ? Math.abs(t.clientX - innerWidth / 2) < 105 && t.clientY > innerHeight - 250 : t.clientX < innerWidth / 2 && t.clientY > innerHeight * 0.22) && ![...touches.values()].some((q) => q.left);
       touches.set(t.identifier, { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, left });
       if (left) { stick.on = true; stick.x = stick.y = 0; pad0.classList.add('on'); pad0.style.left = Math.max(70, Math.min(innerWidth - 70, t.clientX)) + 'px'; pad0.style.top = Math.max(70, Math.min(innerHeight - 70, t.clientY)) + 'px'; } } }, { passive: true });
     el.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (!s) continue;
       if (s.left) { let dx = t.clientX - s.x0, dy = t.clientY - s.y0; const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
         knob.style.transform = `translate(${dx}px,${dy}px)`; stick.x = dx / R; stick.y = dy / R; }
-      else { const k = 2.6 / Math.max(320, Math.min(innerWidth, 900)); yaw -= (t.clientX - s.x) * k; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * k * 0.8)); }   // a swipe across the screen turns you about the same on any phone
+      else { const k = 3.2 / Math.max(320, Math.min(innerWidth, 900)); yaw -= (t.clientX - s.x) * k; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * k * 0.8)); }   // a swipe across the screen turns you about the same on any phone
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
     const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
@@ -952,7 +953,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       yaw = rad(90) + Math.PI;                                                          // both roads start towards the smaller angles
       CPS[cp][2]();
       if (guide) guide.position.copy(PATH[0][0]);
-    } else { root = true; hud('הקשב לווירגיליוס. אפשר להביט סביב');                   // the gate is in view while he speaks: look around, the walk begins when he has named it
+    } else { root = true; hud(matchMedia('(pointer: coarse)').matches ? 'הקשב לווירגיליוס. גרור אצבע על המסך כדי להביט סביב' : 'הקשב לווירגיליוס. אפשר להביט סביב');                   // the gate is in view while he speaks: look around, the walk begins when he has named it
       startFilm('intro', () => { title('היער האפל', 'בחצי דרכם של חיינו'); say('v_start', null, true);
         say('v_gate', () => { root = false; title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1); hud('רד במנהרה אל שפת התהום, והבט למטה'); }, true);
         say('d_gate', null, true); say('v_gate2', null, true); }); }
