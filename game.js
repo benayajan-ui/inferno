@@ -287,7 +287,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     padAx.x = padAx.y = 0; padAx.run = false; if (!navigator.getGamepads) return; let gp = null; for (const q of navigator.getGamepads()) if (q && q.connected) { gp = q; break; } if (!gp) return;
     const dz = (x) => (Math.abs(x) < 0.18 ? 0 : x), hit = (i) => { const on = !!(gp.buttons[i] && gp.buttons[i].pressed), was = padWas[i]; padWas[i] = on; return on && !was; };
     if (hit(9)) setPaused(!game.paused); if (hit(3)) $('gBook').classList.toggle('on');
-    if (hit(0)) { if (film && film.t > 0.4) endFilm(); else if (cine && !cine.out) cine.out = true; }
+    if (hit(0)) skipNow();
     if (game.paused) return;
     padAx.x = dz(gp.axes[0] || 0); padAx.y = dz(gp.axes[1] || 0); padAx.run = !!((gp.buttons[7] && gp.buttons[7].pressed) || (gp.buttons[10] && gp.buttons[10].pressed));
     yaw -= dz(gp.axes[2] || 0) * dt * 2.4; pitch = Math.max(-1.3, Math.min(1.3, pitch - dz(gp.axes[3] || 0) * dt * 1.8));
@@ -477,8 +477,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     phase = 'cine'; cine = { shot: 0, t: 0, st: 0, h: 0, out: false }; keys.clear(); cEye.copy(camera.position); camera.getWorldDirection(cA); cTar.copy(cEye).addScaledVector(cA, 20);
     title('המבוא', 'חוף האכרון'); hud(matchMedia('(pointer: coarse)').matches ? 'הבט אל התהום' : 'הבט אל התהום · רווח מחזיר אליך את המבט');
     const next = (n) => () => { if (cine) { cine.shot = n; cine.st = 0; } };
-    later(1.4, () => { say('m1', next(1), true); say('m2', next(2), true);
-      say('m3', () => { if (cine) cine.out = true; note(2); hud('התקרב לאחת הדמויות במבואה'); say('v_vest', null, true); }, true); });
+    const fin = () => { if (cine) cine.out = true; note(2); hud('התקרב לאחת הדמויות במבואה'); say('v_vest', null, true); };
+    const c = cine; later(1.4, () => { if (c.skipAll) return fin(); say('m1', next(1), true); say('m2', next(2), true); say('m3', fin, true); });
   }
   // the camera never stands still: it spirals down the funnel past the circles while the first two lines are spoken,
   // then rides along the storm of the second circle and ends on the river and the boat
@@ -707,7 +707,18 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     phase = film.prev; film = null; if (after) after();
   }
   addEventListener('keydown', (e) => { if (e.code === 'Space' && film && film.t > 1) endFilm(); });
-  $('gSkip').addEventListener('click', () => { if (film && film.t > 0.4) endFilm(); });
+  // Skip (the button, Enter, or the controller): a film ends; the flight over the pit ends together with what is said over it;
+  // anywhere else the line being spoken is cut short. What a line sets going when it ends still happens.
+  function skipNow() {
+    if (film) { if (film.t > 0.4) endFilm(); return; }
+    if (cine && !cine.out) { cine.skipAll = true; cine.out = true; if ($('gTask').textContent.startsWith(tr('הבט אל התהום'))) hud('');
+      if (speaking) { if (speaking.audio) speaking.audio.pause(); const a = speaking.after, q = queue.splice(0); speaking = null; $('gSub').classList.remove('on'); if (a) a(); for (const x of q) if (x.after) x.after(); }
+      return; }
+    if (speaking && speaking.t > 0.3) { if (speaking.audio) speaking.audio.pause(); speaking.done = true; }
+  }
+  const skippable = () => !film && !game.paused && !game.ended && !!((cine && !cine.out) || (speaking && speaking.max > 5.5));
+  $('gSkip').addEventListener('click', skipNow);
+  addEventListener('keydown', (e) => { if (e.code === 'Enter' && game.active && !game.paused && (film || skippable())) { e.preventDefault(); skipNow(); } });
 
   // the figures the game handles one by one are shown in their detailed version as soon as it has loaded
   let upT = 0;
@@ -909,6 +920,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
     const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
+    if (!matchMedia('(pointer: coarse)').matches) $('gSkip').textContent = tr('דלג') + ' · Enter';
     if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch');
       const b = $('gGyro'), label = () => { b.textContent = tr(gyro.on ? 'מבט לפי תנועת הטלפון: פועל' : 'מבט לפי תנועת הטלפון: כבוי'); b.setAttribute('aria-pressed', gyro.on); };
       if (window.DeviceOrientationEvent) { b.hidden = false; label(); b.addEventListener('click', () => { gyro.on = !gyro.on; gyro.last = null; try { localStorage.setItem('inferno_gyro', gyro.on ? '1' : '0'); } catch (e) {} if (gyro.on) gyro.start(); label(); }); } }
@@ -947,7 +959,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (!matchMedia('(pointer: coarse)').matches) game.lock(); else if (gyro.on) gyro.start();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { pad(dt); sfx(dt); if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
+  game.update = (dt) => { document.body.classList.toggle('skip', skippable()); pad(dt); sfx(dt); if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
   let spy = null;                                                                    // automated checks: look at the scene from a fixed point
   // for automated checks: jump to a place on the route
   game.debug = { gyro, certificate, film: (n) => startFilm(n, () => {}), end, find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };

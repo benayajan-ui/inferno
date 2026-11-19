@@ -187,6 +187,7 @@
   body.film #gTask, body.film #gNote, body.film #gMenu, body.film #gHint, body.film #gArrow, body.film #snd, body.film #gStick { visibility:hidden; }
   #gSkip { position:fixed; bottom:22px; inset-inline-end:22px; z-index:6; display:none; border:1px solid var(--line); background:rgba(8,5,4,.62); border-radius:999px; padding:10px 22px; font-size:15px; color:var(--ink); }
   #gSkip:hover { border-color:var(--gold); color:var(--gold); } body.film #gSkip { display:block; }
+  body.skip #gSkip { display:block; inset-inline:auto; right:22px; bottom:calc(22px + env(safe-area-inset-bottom, 0px)); }   /* in play: the corner the stick never uses */
   /* over a film the words are larger and sit on a soft dark band */
   body.film #gSub { bottom:12vh; } body.film #gText { font-size:clamp(21px,3vw,33px); } body.film #gWho { font-size:16px; }
   body.film #gSub::before { content:""; position:absolute; inset:-30px -46px; z-index:-1; background:radial-gradient(closest-side, rgba(0,0,0,.74), rgba(0,0,0,.46) 62%, rgba(0,0,0,0)); }
@@ -319,7 +320,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=43';
+import { createGame } from './game.js?v=44';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=27';
 
 const T_ = window.I18N.t;
