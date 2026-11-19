@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { MeshBVH } from 'https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js';
 
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { TR } from './game.lang.js?v=1';
 
 // the page's language (i18n.js): tr('…') gives a Hebrew interface string in it; the spoken lines are replaced below
@@ -415,7 +416,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     for (const a of alive) {
       a.t += dt; const k = Math.min(1, a.t / 0.9), e = k * k * (3 - 2 * k);
       if (!a.hi && detail.has(a.o.userData.meshKey)) { const [geo, mat] = detail.get(a.o.userData.meshKey)[0];       // a living statue is always the detailed one
-        a.o.geometry = geo; a.o.material = mat.clone(); a.o.material.userData = {}; posed(a.o); a.hi = true; }
+        if (!a.o.userData.ownGeo) a.o.geometry = geo; a.o.material = mat.clone(); a.o.material.userData = {}; posed(a.o); a.hi = true; }
       a.o.material.color.copy(a.c0).lerp(WARM, 0.85 * e);
       if (a.o.material.emissive) a.o.material.emissive.setRGB(0.11 * e, 0.05 * e, 0.025 * e);
       a.o.scale.y = a.sy * (1 + 0.035 * e + 0.013 * Math.sin(a.t * 2.3) * e);           // straightens, then breathes
@@ -692,7 +693,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   let upT = 0;
   function upgrade(dt) { if ((upT += dt) < 1) return; upT = 0;
     for (const o of kept) { if (o.userData.hi || !o.visible || o === guide || !detail.has(o.userData.meshKey)) continue;
-      const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; o.geometry = geo; o.material = mat.clone(); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
+      const [geo, mat] = detail.get(o.userData.meshKey)[0], c = o.material.color ? o.material.color.clone() : null; if (!o.userData.ownGeo) o.geometry = geo; o.material = mat.clone(); o.material.userData = {}; posed(o); if (c && alive.some((a) => a.o === o)) o.material.color.copy(c); o.userData.hi = true; } }
   function stages(dt) { ticking(dt); upgrade(dt);
     if (cineWait >= 0) { if (speaking || queue.length) cineWait = 0; else if ((cineWait += dt) > 1.1) { cineWait = -1; startCine(); } }
     if (phase === 'limbo') runPoets(dt); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
@@ -748,7 +749,10 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   ROUTES.toPlutus = [...arc(38.7, 88, 67, L4)];
   ROUTES.c4 = [...arc(38.3, 64, 38, L4)];
   function setupAvarice() {
-    plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); pose(plutus, 'trunk'); }
+    plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); pose(plutus, 'trunk');
+      // his own mesh with two sculpted poses (arms out, arms up), made in Blender: the statue can throw its arms up
+      new GLTFLoader().load('plutus_pose.glb?v=1', (g) => { let m = null; g.scene.traverse((o) => { if (o.isMesh) m = o; }); if (!m) return;
+        plutus.geometry = m.geometry; plutus.userData.ownGeo = true; plutus.morphTargetInfluences = [0, 0]; plutus.morphTargetDictionary = m.morphTargetDictionary; }, undefined, () => {}); }
     game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], 0.9, true);
     // the two rows stand still in the game, so that the lane stays open; the boulders along it are cleared like the statues
     const road = [...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
@@ -777,7 +781,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       rows.forEach((o, i) => { o.rotation.y = (i ? -1 : 1) * 0.017 * (k * k - 0.5); }); if (rows.hit && !was && Math.abs(pos.y - L4) < 2) knock(); }
     if (plutus && plutusRoar >= 0) { plutusRoar += dt; const t = plutusRoar, wind = Math.min(1, t / 0.4), go = Math.max(0, Math.min(1, (t - 0.4) / 0.3)), a = alive.find((x) => x.o === plutus);
       plutus.userData.pose.u.value = (plutusDown >= 0 ? 1 - plutusDown : 1) * (-0.55 * wind * (1 - go) + go * (0.8 + 0.12 * Math.sin(t * 31)));   // back, then forward at you, shaking
-      if (a && plutusDown < 0) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 + 0.07 * go); }
+      if (a && plutusDown < 0) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 + 0.07 * go);
+      if (plutus.morphTargetInfluences) { const k = plutusDown >= 0 ? 1 - plutusDown : 1, mid = Math.max(0, Math.min(1, (t - 0.25) / 0.3)), up = Math.max(0, Math.min(1, (t - 0.5) / 0.35));   // arms swing out, then up
+        plutus.morphTargetInfluences[0] = k * mid * (1 - up); plutus.morphTargetInfluences[1] = k * up * (0.95 + 0.05 * Math.sin(t * 23)); } }
     if (plutus && plutusDown >= 0 && plutusDown < 1) { plutusDown = Math.min(1, plutusDown + dt / 1.4);                 // he falls like sails when the mast snaps
       const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) { a.turn = false; a.sy = (a.sy0 = a.sy0 || a.sy) * (1.07 - 0.67 * k); } plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
     for (let i = dull.length - 1; i >= 0; i--) { const d = dull[i]; d.t += dt; d.l.intensity = 3 * Math.max(0, 1 - d.t / 1.6) * (0.6 + 0.4 * Math.sin(d.t * 30)); if (d.t > 1.6) { scene.remove(d.l); dull.splice(i, 1); } }
