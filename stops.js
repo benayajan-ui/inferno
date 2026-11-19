@@ -1,6 +1,10 @@
 // The stations of the journey: where the camera stands, what the card says.
 // Coordinates are given in the Blender frame (radius, angle in degrees, height) and
 // converted by the viewer. Hebrew translations of the quoted lines are free translations.
+import { EN } from './stops.en.js?v=1';
+import { IT } from './stops.it.js?v=1';
+// the page's language (i18n.js); Hebrew is the text written in this file
+const TRL = { en: EN, it: IT }[(globalThis.I18N || {}).LANG];
 export const S = 0.364;
 export const ICE = S * -203.8;
 export const ZF = S * -32;                       // vestibule floor
@@ -71,7 +75,8 @@ const BOLGE = [
     it: `ché voler ciò udire è bassa voglia`, he: `כי הרצון לשמוע דברים כאלה הוא תשוקה שפלה`, ref: `התופת, ל׳, 148`,
     text: [`ארבעה סוגי זייפנים, וכל אחד לוקה במחלה אחרת: האלכימאים מגרדים גלדים מעורם, המתחזים רצים מוכי טירוף ונושכים, זייפני המטבעות נפוחים ממיימת וצמאים, והשקרנים בוערים מקדחת.`,
            `מאסטרו אדמו, שזייף את הפלורין, וסינון היווני, ששיקר לטרויאנים, מתקוטטים ומכים זה את זה. דנטה מקשיב מרותק, ווירגיליוס גוער בו.`] },
-].map((b, k) => ({ ...b, ...ditch(k), tag: `מעגל הרמאים · תעלה ${k + 1} מתוך 10 · ${b.canto}` }));
+].map((b, k) => { const o = TRL ? { ...b, ...TRL.BOLGE[k] } : b;
+  return { ...o, ...ditch(k), tag: TRL ? TRL.tag(k + 1, o.canto) : `מעגל הרמאים · תעלה ${k + 1} מתוך 10 · ${b.canto}` }; });
 
 export const STOPS = [
   {
@@ -237,3 +242,4 @@ export const STOPS = [
     look: 'שלושת הפיות של לוציפר, והנשמות הקפואות בקרח סביבו.',
   },
 ];
+if (TRL) STOPS.forEach((st, i) => Object.assign(st, TRL.STOPS[i]));

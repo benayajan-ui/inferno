@@ -188,6 +188,7 @@
   <div class="go"><button class="main" id="begin" type="button">להתחיל את המסע</button><button id="roam" type="button">סיור חופשי</button><button id="paint0" type="button">הציור המקורי</button><a class="btn" href="game.html">משחק (בהקמה)</a></div>
 </div></div>
 
+<script src="i18n.js?v=1"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -204,8 +205,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { STOPS, S, ICE, ZF, T } from './stops.js?v=26';
+import { STOPS, S, ICE, ZF, T } from './stops.js?v=27';
 
+const T_ = window.I18N.t;
 const VER = 18;
 const Q = new URLSearchParams(location.search);
 // phones and weak machines: no bloom, no near-camera statue swap, fewer particles
@@ -480,7 +482,7 @@ function animate(f) {
 
 // --- sound: an ambient score made in the browser; it may only start after a click ---
 const sound = createSound();
-const sndLabel = () => { $('snd').textContent = sound.on ? 'צליל: פועל' : 'צליל: כבוי'; $('snd').setAttribute('aria-pressed', sound.on); };
+const sndLabel = () => { $('snd').textContent = T_(sound.on ? 'צליל: פועל' : 'צליל: כבוי'); $('snd').setAttribute('aria-pressed', sound.on); };
 sndLabel();
 $('snd').addEventListener('click', () => { sound.toggle(); sndLabel(); });
 addEventListener('pointerdown', () => { if (sound.on) sound.start(); }, { once: true });   // deep links skip the opening screen
@@ -505,19 +507,19 @@ function route(from, to, via) {
 function showCard(i, part = -1) {
   const st = STOPS[i], s = part >= 0 ? st.parts[part] : st;
   $('cName').textContent = s.title; $('cSub').textContent = s.tag;
-  $('cImg').src = `img/map_${String(st.img).padStart(2, '0')}.jpg`; $('cImg').alt = `הקטע בציור של בוטיצ'לי: ${st.name}`;
+  $('cImg').src = `img/map_${String(st.img).padStart(2, '0')}.jpg`; $('cImg').alt = T_("הקטע בציור של בוטיצ'לי:") + ' ' + st.name;
   const el = (tag, txt) => { const e = document.createElement(tag); if (txt) e.textContent = txt; return e; };
   const text = $('cText'); text.replaceChildren(...(s.text || [s.who, s.punish]).filter(Boolean).map((t) => el('p', t)));
   if (s.list) { const ol = el('ol'); if (s.parts) ol.className = 'pick';
     s.list.forEach((t, k) => { const li = el('li', t); if (s.parts) li.addEventListener('click', () => { setPlaying(false); go(i, false, k); }); ol.appendChild(li); });
     text.appendChild(ol); }
   const chips = $('cParts'); chips.hidden = !st.parts;
-  if (st.parts) chips.replaceChildren(...[-1, ...st.parts.keys()].map((k) => { const b = el('button', k < 0 ? 'כל המעגל' : String(k + 1)); b.type = 'button';
+  if (st.parts) chips.replaceChildren(...[-1, ...st.parts.keys()].map((k) => { const b = el('button', k < 0 ? T_('כל המעגל') : String(k + 1)); b.type = 'button';
     if (k >= 0) b.title = st.parts[k].title; if (k === part) b.setAttribute('aria-current', 'true');
     b.addEventListener('click', () => { setPlaying(false); go(i, false, k); }); return b; }));
   $('cQ').style.display = s.it ? '' : 'none';
   $('cIt').textContent = s.it || ''; $('cHe').textContent = s.he || ''; $('cRef').textContent = s.ref || '';
-  $('cLook').textContent = s.look ? 'במודל: ' + s.look : '';
+  $('cLook').textContent = s.look ? T_('במודל:') + ' ' + s.look : '';
   card.querySelector('.body').scrollTop = 0;
   card.classList.remove('away');
 }
@@ -543,7 +545,7 @@ function step(d) {
   if (d < 0 && q >= 0) return go(i, false, q - 1);
   go(i + d);
 }
-function setPlaying(on) { playing = on; dwell = 0; $('play').textContent = on ? 'השהה' : (at >= STOPS.length - 1 ? 'מההתחלה' : 'מסע מודרך'); }
+function setPlaying(on) { playing = on; dwell = 0; $('play').textContent = T_(on ? 'השהה' : (at >= STOPS.length - 1 ? 'מההתחלה' : 'מסע מודרך')); }
 STOPS.forEach((s, i) => {
   const b = document.createElement('button'); b.type = 'button';
   b.innerHTML = `<i>${i || '·'}</i><span>${s.name}</span>`;
@@ -559,14 +561,14 @@ $('next').addEventListener('click', () => { setPlaying(false); step(1); });
 $('prev').addEventListener('click', () => { setPlaying(false); step(-1); });
 $('menu').addEventListener('click', () => rail.classList.toggle('open'));
 // the title is the switch: folded, only the title stays on screen; a click on it opens the text again
-function setFolded(f) { card.classList.toggle('folded', f); $('fold').textContent = f ? 'לפירוט ▾' : 'מזער ▴'; $('head').setAttribute('aria-expanded', !f); try { localStorage.setItem('fold', f ? '1' : ''); } catch (e) {} }
+function setFolded(f) { card.classList.toggle('folded', f); $('fold').textContent = T_(f ? 'לפירוט ▾' : 'מזער ▴'); $('head').setAttribute('aria-expanded', !f); try { localStorage.setItem('fold', f ? '1' : ''); } catch (e) {} }
 $('head').addEventListener('click', () => setFolded(!card.classList.contains('folded')));
 $('head').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); $('head').click(); } });
 { let f = false; try { f = !!localStorage.getItem('fold'); } catch (e) {} setFolded(f); }
-const CAP = 'סנדרו בוטיצ\'לי, מפת הגיהנום, סוף המאה ה־15. ספריית הוותיקן.';
+const CAP = T_('סנדרו בוטיצ\'לי, מפת הגיהנום, סוף המאה ה־15. ספריית הוותיקן.');
 function openBox(src, full) {
   const b = $('box'); b.querySelector('img').src = src; b.className = full ? 'on full' : 'on'; b.scrollTo(0, 0);
-  $('boxCap').textContent = full ? CAP + ' לחיצה על הציור מגדילה.' : CAP;
+  $('boxCap').textContent = full ? CAP + ' ' + T_('לחיצה על הציור מגדילה.') : CAP;
 }
 const closeBox = () => { $('box').className = ''; };
 $('cImg').addEventListener('click', () => openBox($('cImg').src, false));
@@ -648,7 +650,7 @@ loader.load(`inferno_web.glb?v=${VER}`, (gltf) => {
   $('roam').addEventListener('click', () => { open(); sound.start(); });
   if (!LITE) loadDetail();
 }, (e) => { if (e.total) bar.style.width = (100 * e.loaded / e.total) + '%'; },
-   (err) => { console.error(err); msg.textContent = 'טעינת המודל נכשלה. את הדף צריך לפתוח דרך שרת (http), לא כקובץ מקומי.'; });
+   (err) => { console.error(err); msg.textContent = T_('טעינת המודל נכשלה. את הדף צריך לפתוח דרך שרת (http), לא כקובץ מקומי.'); });
 </script>
 </body>
 </html>

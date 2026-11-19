@@ -3,6 +3,11 @@
 import * as THREE from 'three';
 import { MeshBVH } from 'https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js';
 
+import { TR } from './game.lang.js?v=1';
+
+// the page's language (i18n.js): tr('…') gives a Hebrew interface string in it; the spoken lines are replaced below
+const I18N = globalThis.I18N || { LANG: 'he', t: (x) => x }, LANG = I18N.LANG, tr = I18N.t;
+const VOICE = LANG === 'he' ? 'voice/' : `voice/${LANG}/`;                 // the recordings of each language
 const S = 0.364, ZF = S * -32, GATE = 150, EYE = 1.66;
 const rad = (d) => d * Math.PI / 180;
 // p(r, angle, height): a point on the funnel; g(x, y, height): the gate's own frame (x = outwards from the pit)
@@ -106,6 +111,8 @@ const NOTES = [
   ['Volgiti \'n dietro e tien lo viso chiuso', 'פנה לאחור, ועצום את עיניך', 'ט׳, 55'],
 ];
 
+if (TR[LANG]) { Object.assign(LINES, TR[LANG].LINES); TR[LANG].NOTES.forEach(([text, ref], k) => { NOTES[k][1] = text; NOTES[k][2] = ref; }); }
+
 export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, ANIM }) {
   const game = { active: false, ended: false };
   const $ = (id) => document.getElementById(id);
@@ -191,7 +198,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const stay = (r = 4) => { hold = { x: pos.x, z: pos.z, r }; hud('הקשב לווירגיליוס'); };
   function lock(floor) { lockY = Math.min(floor, pos.y) - 1.0; lastOk.copy(pos); }
   function blocked() { if (performance.now() < lockMsg) return; lockMsg = performance.now() + 4500; const el = $('gTask'), was = el.textContent, on = el.classList.contains('on');
-    const msg = 'המדרגות סגורות. קודם משלימים את המשימה כאן'; el.textContent = msg; el.classList.add('on'); knock();
+    const msg = tr('המדרגות סגורות. קודם משלימים את המשימה כאן'); el.textContent = msg; el.classList.add('on'); knock();
     setTimeout(() => { if (el.textContent === msg) { el.textContent = was; el.classList.toggle('on', on); } }, 2600); }
   // --- small sounds, synthesised through the page's own audio (nothing is played if the sound is off) ---
   let stepAcc = 0;
@@ -311,7 +318,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const murmurs = [];
   function murmur(id, at, after) { if (queue.length >= 2 && !/^p\d$/.test(id)) { if (after) after(); return; } say(id, after, true); }
   function murmurOld(id, at, after) {
-    const [who, text] = LINES[id]; const a = new Audio(`voice/${id}.mp3`); a.volume = 0;
+    const [who, text] = LINES[id]; const a = new Audio(`${VOICE}${id}.mp3`); a.volume = 0;
     const m = { a, at, after, t: 0, max: 2 + text.length * 0.075 }; murmurs.push(m);
     a.addEventListener('loadedmetadata', () => { m.max = a.duration + 0.3; }); a.play().catch(() => {});
     $('gWho2').textContent = who; $('gText2').textContent = text; $('gSub2').classList.add('on');
@@ -330,7 +337,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const [who, text] = LINES[next.id];
     $('gWho').textContent = who; $('gText').textContent = text; $('gSub').classList.add('on');
     speaking = { t: 0, max: 2.2 + text.length * 0.075, done: false, after: next.after };
-    const a = new Audio(`voice/${next.id}.mp3`); a.volume = sound.on ? 1 : 0;
+    const a = new Audio(`${VOICE}${next.id}.mp3`); a.volume = sound.on ? 1 : 0;
     a.addEventListener('loadedmetadata', () => { if (speaking) speaking.max = a.duration + 0.5; });
     a.addEventListener('ended', () => { if (speaking) speaking.done = true; });
     a.play().catch(() => {});                                                          // no file or no sound: the subtitle still runs its time
@@ -384,9 +391,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const got = new Set();
   function note(i) {
     if (got.has(i)) return; got.add(i);
-    $('gNote').textContent = `המחברת ${got.size}/${NOTES.length}`; $('gNote').classList.add('new'); setTimeout(() => $('gNote').classList.remove('new'), 1600);
+    $('gNote').textContent = `${tr('המחברת')} ${got.size}/${NOTES.length}`; $('gNote').classList.add('new'); setTimeout(() => $('gNote').classList.remove('new'), 1600);
     $('gList').replaceChildren(...NOTES.map(([it, he, ref], k) => { const li = document.createElement('li');
-      if (got.has(k)) { li.innerHTML = '<i lang="it"></i><span></span><small></small>'; li.children[0].textContent = it; li.children[1].textContent = he; li.children[2].textContent = 'התופת, ' + ref; }
+      if (got.has(k)) { li.innerHTML = '<i lang="it"></i><span></span><small></small>'; li.children[0].textContent = it; li.children[1].textContent = he; li.children[2].textContent = tr('התופת') + (LANG === 'he' ? ', ' : ' ') + ref; }
       else { li.className = 'empty'; li.textContent = '· · ·'; } return li; }));
   }
 
@@ -427,7 +434,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     camera.position.copy(cEye); camera.lookAt(cTar);
     if (cine.out && cEye.distanceTo(cA) < 0.12) { cine = null; phase = 'walk'; }
   }
-  addEventListener('keydown', (e) => { if (e.code === 'Space' && cine && !cine.out) { cine.out = true; if ($('gTask').textContent.startsWith('הבט אל התהום')) hud(''); } });
+  addEventListener('keydown', (e) => { if (e.code === 'Space' && cine && !cine.out) { cine.out = true; if ($('gTask').textContent.startsWith(tr('הבט אל התהום'))) hud(''); } });
 
   // --- Charon's boat: it will not sail empty. Wake three souls who already wait at the water's edge; they board, then you may ---
   const BOAT_R = 51.85, DOCK = 120, LAND = 83.7, BOAT_YAW = 0.7388;                       // the hull is turned 42 degrees inside its group
@@ -450,7 +457,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       quest.push({ o, ok, line, u: (u || 0) * side });
     }
   }
-  function task() { $('gTask').textContent = !questOn ? '' : aboard < 3 ? `הער את הנשמות שעומדות ליד המים · ${aboard}/3` : 'עלה לסירה'; $('gTask').classList.toggle('on', questOn); }
+  function task() { $('gTask').textContent = !questOn ? '' : tr(aboard < 3 ? `הער את הנשמות שעומדות ליד המים · ${aboard}/3` : 'עלה לסירה'); $('gTask').classList.toggle('on', questOn); }
   function runQuest(dt) {
     if (!boat || phase !== 'walk') return;
     if (questOn) { for (const q of quest) { if (q.done) continue;
@@ -517,8 +524,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
   // a chapter title that rises and fades when a new place begins
   let titleT = 0;
-  function title(big, small) { $('gTitleB').textContent = big; $('gTitleS').textContent = small || ''; $('gTitle').classList.add('on'); clearTimeout(titleT); titleT = setTimeout(() => $('gTitle').classList.remove('on'), 4200); }
-  const hud = (text) => { $('gTask').textContent = text || ''; $('gTask').classList.toggle('on', !!text); };
+  function title(big, small) { $('gTitleB').textContent = tr(big); $('gTitleS').textContent = tr(small || ''); $('gTitle').classList.add('on'); clearTimeout(titleT); titleT = setTimeout(() => $('gTitle').classList.remove('on'), 4200); }
+  const hud = (text) => { $('gTask').textContent = tr(text || ''); $('gTask').classList.toggle('on', !!text); };
   const save = (cp) => { try { localStorage.setItem('inferno_cp', cp); } catch (e) {} };
   const speaker = (at, reach, to) => { const o = extract(at, reach); if (o && to) { o.position.x = to.x; o.position.z = to.z; } return o; };
 
@@ -569,7 +576,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function runPoets(dt) {
     if (!poetsOn && !poetAt) return;
     for (const q of poets) { const d = Math.hypot(q.o.position.x - pos.x, q.o.position.z - pos.z);
-      if (!q.tag) { q.tag = nameTag(PN[q.rank]); q.tag.position.set(q.o.position.x, q.o.position.y + 2.25, q.o.position.z); q.sign = emblem(q.rank); q.sign.position.set(q.o.position.x, q.o.position.y + 3.25, q.o.position.z); q.y0 = q.o.position.y + 3.25; }
+      if (!q.tag) { q.tag = nameTag(tr(PN[q.rank])); q.tag.position.set(q.o.position.x, q.o.position.y + 2.25, q.o.position.z); q.sign = emblem(q.rank); q.sign.position.set(q.o.position.x, q.o.position.y + 3.25, q.o.position.z); q.y0 = q.o.position.y + 3.25; }
       q.tag.visible = !!q.woke && d < 9;                                                       // his name appears once he has spoken
       q.sign.visible = true; q.sign.rotation.y += dt * 0.9; q.sign.position.y = q.y0 + Math.sin(performance.now() / 700 + q.rank) * 0.07;
       if (!poetsOn) continue;
@@ -609,7 +616,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   // --- short painted films that take over the screen at three moments: the dark wood before the game, the lovers' story, the gate of Dis
   //     opening at the end. Space or a tap skips one; if a film cannot play, its words still run their time. ---
   const FILMS = {
-    intro:  { src: 'film/intro.mp4', who: 'דנטה', text: 'באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.', t0: 0.8, talk: 5.2, len: 9.2 },
+    intro:  { src: 'film/intro.mp4', who: tr('דנטה'), text: tr('באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.'), t0: 0.8, talk: 5.2, len: 9.2 },
     lovers: { src: 'film/lovers.mp4', who: LINES.francesca[0], text: LINES.francesca[1], t0: 0.4, talk: 16.8, len: 18.1 },
     dis:    { src: 'film/dis.mp4', who: '', text: '', t0: 0, talk: 0, len: 5.2 },
   };
@@ -618,7 +625,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const el = $('gFilm'), def = FILMS[name], prev = phase; phase = 'film'; keys.clear(); document.body.classList.add('film');
     film = { el, def, prev, after, t: 0, done: false, silent: false, parts: def.text ? def.text.split(/(?<=[.,])\s+/) : [] };
     if (!el.src.endsWith(def.src)) el.src = def.src;
-    el.muted = !sound.on; try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
+    el.muted = !sound.on || LANG !== 'he'; try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
     const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });
   }
   function runFilm(dt) {
@@ -775,7 +782,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       if (doorT > 3.2) { doorT = -1; for (const d of doors) d.visible = false; say('d_end', null, true); say('v_end', () => end('סוף הפרק הראשון'), true); } }
   }
 
-  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = title; try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} מתוך ${NOTES.length} שורות במחברת · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} דקות`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
+  function end(title) { game.ended = true; if (typeof title === 'string') { $('gEnd').querySelector('h2').textContent = tr(title); try { localStorage.removeItem('inferno_cp'); } catch (e) {} } $('gEndN').textContent = `${got.size} ${tr('מתוך')} ${NOTES.length} ${tr('שורות במחברת')} · ${Math.max(1, Math.round((performance.now() - t0) / 60000))} ${tr('דקות')}`; $('gEnd').classList.add('on'); if (document.pointerLockElement) document.exitPointerLock(); }
 
   // --- input ----------------------------------------------------------------------------------------
   function bind() {
