@@ -119,9 +119,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const $ = (id) => document.getElementById(id);
   const ray = new THREE.Ray(), DOWN = new THREE.Vector3(0, -1, 0), v = new THREE.Vector3(), v2 = new THREE.Vector3();
   let bvh = null;
-  const pos = p(79.5, 188, 0), keys = new Set();
+  const pos = g(84, 0.6, 0), keys = new Set();
   let yaw = 0, pitch = 0, bob = 0, moved = 0, coast = 0, crouch = 0, wakeT = -1;
-  const stick = { x: 0, y: 0 }, touches = new Map();
+  const stick = { x: 0, y: 0, on: false }, touches = new Map();
 
   // --- collision: the rock, the stairs and the gate become one invisible mesh with a BVH ---------
   function buildCollider() {
@@ -195,7 +195,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const timers = []; const later = (t, fn) => timers.push({ t, fn });
   function ticking(dt) { for (let i = timers.length - 1; i >= 0; i--) if ((timers[i].t -= dt) <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   // a circle's stair stays shut until its task is done: you cannot go more than a metre below the floor you are on
-  let lockY = null, lockMsg = 0, gateHold = false, cineWait = -1, hold = null; const lastOk = new THREE.Vector3();
+  let lockY = null, lockMsg = 0, gateHold = false, root = false, cineWait = -1, hold = null; const lastOk = new THREE.Vector3();
   const stay = (r = 4) => { hold = { x: pos.x, z: pos.z, r }; hud('הקשב לווירגיליוס'); };
   function lock(floor) { lockY = Math.min(floor, pos.y) - 1.0; lastOk.copy(pos); }
   function blocked() { if (performance.now() < lockMsg) return; lockMsg = performance.now() + 4500; const el = $('gTask'), was = el.textContent, on = el.classList.contains('on');
@@ -280,9 +280,13 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     yaw -= dz(gp.axes[2] || 0) * dt * 2.4; pitch = Math.max(-1.3, Math.min(1.3, pitch - dz(gp.axes[3] || 0) * dt * 1.8));
   }
   function walk(dt) {
-    let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - stick.y - padAx.y;
-    let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + stick.x + padAx.x;
+    let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - padAx.y;
+    let s = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + padAx.x;
     if (keys.has('ArrowLeft')) yaw += dt * 1.9; if (keys.has('ArrowRight')) yaw -= dt * 1.9;
+    // the thumb: a touch on the stick walks ahead, leaning it turns you, pulling it down steps back - one thumb is enough
+    if (stick.on) { const ax = Math.abs(stick.x), back = stick.y > 0.5 && stick.y > ax; f += back ? -Math.min(1, stick.y) : 1 - 0.55 * Math.max(0, ax - 0.3) / 0.7;
+      if (ax > 0.16) yaw -= Math.sign(stick.x) * (ax - 0.16) / 0.84 * (back ? -1.4 : 1.8) * dt; }
+    if (root) { f = s = 0; coast = 0; }
     if (phase === 'cine') return runCine(dt);
     if (phase === 'film') return runFilm(dt);
     if (phase === 'sail') return ride(dt);
@@ -311,7 +315,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   }
 
   // --- the guide: Virgil glides ahead and waits at each stop until you come near --------------------
-  const PATH = [[p(79.4, 182, 0), 1], [p(79.3, 174, 0), 0], [p(79, 166, 0), 1], [p(78.8, 161, 0), 0], [p(78.4, 156.5, 0), 1], [g(76.6, 0.9, 0), 1], [g(72.6, 0.2, 0), 0], [g(70, 0, stairY(70)), 1], [g(66, 0, stairY(66)), 0], [g(62, 0, stairY(62)), 1],
+  const PATH = [[g(76.6, 0.9, 0), 1], [g(72.6, 0.2, 0), 0], [g(70, 0, stairY(70)), 1], [g(66, 0, stairY(66)), 0], [g(62, 0, stairY(62)), 1],
     [g(58, 0, stairY(58)), 0], [g(55.2, 0, ZF), 1], [p(53.5, 148.6, ZF), 0], [p(53.35, 145.5, ZF), 1], [p(53.3, 141, ZF), 0],
     [p(53.3, 136, ZF), 1], [p(53.25, 130, ZF), 0], [p(53.25, 124.6, ZF), 1]];
   let guide = null, guideAt = 0, guideLight = null, guideHi = false, guideRide = false;
@@ -440,8 +444,6 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   const find = (name) => kept.find((o) => o.userData.name === name) || kept.find((o) => (o.userData.name || '').startsWith(name + '_'));   // the beasts are Beast_Lion_01 ...
   const TRIG = [
     { at: p(58.4, 150, 0), r: 7, top: true, run: () => { say('v_beasts'); for (const n of ['Beast_Leopard', 'Beast_Lion', 'Beast_SheWolf']) { const o = find(n); if (o) liven(o, false); } } },
-    { at: g(76, 0, 0), r: 30, run: () => { gateHold = true;
-        say('v_gate', () => { gateHold = false; title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1); }, true); say('d_gate', null, true); say('v_gate2', () => hud('רד במנהרה אל שפת התהום, והבט למטה'), true); } },
     { at: g(55.4, 0, ZF), r: 2.6, run: () => { lock(ZF); cineWait = 0; } },                 // the pit opens in front of you
     { at: p(53.3, 143, ZF), r: 2.8, run: () => { const o = souls[0]; if (o) liven(o, true); note(3); murmur('soul1', o ? o.position : p(54.0, 142.4, ZF), () => { say('v_river'); hud('גש לסירה שעל שפת הנהר'); }); } },
     { at: p(53.3, 133.5, ZF), r: 2.8, run: () => { const o = souls[1]; if (o) liven(o, true); murmur('soul2', o ? o.position : p(54.0, 132.8, ZF)); } },
@@ -876,20 +878,20 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     document.addEventListener('mousemove', (e) => { if (!drag || document.pointerLockElement === el) return; yaw -= e.movementX * 0.004; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.004)); });
     document.addEventListener('pointerlockchange', () => { const on = !!document.pointerLockElement; if (hadLock && !on && !game.paused) setPaused(true); hadLock = on; });   // Esc frees the mouse and pauses
     document.addEventListener('mousemove', (e) => { if (document.pointerLockElement !== el) return; yaw -= e.movementX * 0.0022; pitch = Math.max(-1.3, Math.min(1.3, pitch - e.movementY * 0.0022)); });
-    // touch: a stick appears under a finger on the left half of the screen and walks you any way you push it; the right half turns the head
+    // touch: the stick jumps under a finger on the left half of a wide screen, or on the lower part of an upright one; a finger anywhere else turns the head
     const pad0 = $('gStick'), knob = pad0.firstElementChild, R = 58;
-    const rest = () => { pad0.classList.remove('on'); pad0.style.left = pad0.style.top = ''; knob.style.transform = ''; stick.x = stick.y = 0; };
-    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) { const left = t.clientX < innerWidth / 2 && ![...touches.values()].some((q) => q.left);
+    const rest = () => { pad0.classList.remove('on'); pad0.style.left = pad0.style.top = ''; knob.style.transform = ''; stick.x = stick.y = 0; stick.on = false; };
+    el.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) { const left = (innerHeight > innerWidth ? t.clientY > innerHeight * 0.6 : t.clientX < innerWidth / 2) && ![...touches.values()].some((q) => q.left);
       touches.set(t.identifier, { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, left });
-      if (left) { pad0.classList.add('on'); pad0.style.left = t.clientX + 'px'; pad0.style.top = t.clientY + 'px'; } } }, { passive: true });
+      if (left) { stick.on = true; stick.x = stick.y = 0; pad0.classList.add('on'); pad0.style.left = Math.max(70, Math.min(innerWidth - 70, t.clientX)) + 'px'; pad0.style.top = Math.max(70, Math.min(innerHeight - 70, t.clientY)) + 'px'; } } }, { passive: true });
     el.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (!s) continue;
       if (s.left) { let dx = t.clientX - s.x0, dy = t.clientY - s.y0; const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
-        knob.style.transform = `translate(${dx}px,${dy}px)`; const k = d < 9 ? 0 : 1 / R; stick.x = dx * k; stick.y = dy * k; }
-      else { yaw -= (t.clientX - s.x) * 0.005; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * 0.005)); }
+        knob.style.transform = `translate(${dx}px,${dy}px)`; stick.x = dx / R; stick.y = dy / R; }
+      else { const k = 2.6 / Math.max(320, Math.min(innerWidth, 900)); yaw -= (t.clientX - s.x) * k; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * k * 0.8)); }   // a swipe across the screen turns you about the same on any phone
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
     const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
-    if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch'); $('gHint').firstChild.nodeValue = tr('אצבע בצד שמאל: הליכה לכל כיוון · אצבע בצד ימין: מבט') + ' '; }
+    if (matchMedia('(pointer: coarse)').matches) { document.body.classList.add('touch'); }
     $('gCert').addEventListener('click', (e) => { e.preventDefault(); certificate(); });
     $('gNote').addEventListener('click', () => $('gBook').classList.toggle('on'));
     $('gBook').addEventListener('click', () => $('gBook').classList.remove('on'));
@@ -908,9 +910,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     setupQuest(); setupStages(); clearLane(); setupGuide(); bind();
     camera.near = 0.07; camera.fov = 68; camera.updateProjectionMatrix();
     const gy = groundAt(pos.x, 1, pos.z); pos.y = gy === null ? 0 : gy;
-    { const t = p(79.4, 178, 0); yaw = Math.atan2(-(t.x - pos.x), -(t.z - pos.z)); }      // you stand among the trees; the gate is ahead, along the rim
+    { const t = g(76, 0, 0); yaw = Math.atan2(-(t.x - pos.x), -(t.z - pos.z)); }          // you stand in front of the gate
     document.body.classList.add('playing');
-    game.active = true; t0 = performance.now(); note(0); hud('לך אחרי וירגיליוס אל השער');
+    game.active = true; t0 = performance.now(); note(0);
     if (CPS[cp]) {                          // pick up where the last visit stopped
       for (const t of TRIG) t.done = true; for (let i = 1; i < CPS[cp][0]; i++) note(i);
       if (boat) placeBoat(LAND);
@@ -918,7 +920,10 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
       yaw = rad(90) + Math.PI;                                                          // both roads start towards the smaller angles
       CPS[cp][2]();
       if (guide) guide.position.copy(PATH[0][0]);
-    } else startFilm('intro', () => { say('v_start'); title('היער האפל', 'בחצי דרכם של חיינו'); });
+    } else { root = true; hud('הקשב לווירגיליוס. אפשר להביט סביב');                   // the gate is in view while he speaks: look around, the walk begins when he has named it
+      startFilm('intro', () => { title('היער האפל', 'בחצי דרכם של חיינו'); say('v_start', null, true);
+        say('v_gate', () => { root = false; title('הניחו כל תקווה, אתם הנכנסים', 'הכתובת על השער'); note(1); hud('רד במנהרה אל שפת התהום, והבט למטה'); }, true);
+        say('d_gate', null, true); say('v_gate2', null, true); }); }
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };

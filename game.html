@@ -191,14 +191,17 @@
   body.film #gSub { bottom:12vh; } body.film #gText { font-size:clamp(21px,3vw,33px); } body.film #gWho { font-size:16px; }
   body.film #gSub::before { content:""; position:absolute; inset:-30px -46px; z-index:-1; background:radial-gradient(closest-side, rgba(0,0,0,.74), rgba(0,0,0,.46) 62%, rgba(0,0,0,0)); }
   /* the walking stick for a thumb: it rests in the corner and jumps under the finger */
-  #gStick { position:fixed; left:92px; top:calc(100% - 104px); width:124px; height:124px; margin:-62px 0 0 -62px; border:2px solid rgba(243,232,212,.4); border-radius:50%; z-index:5; display:none; pointer-events:none; background:rgba(8,5,4,.2); opacity:.5; }
+  #gStick { position:fixed; left:92px; top:calc(100% - 104px - env(safe-area-inset-bottom, 0px)); width:124px; height:124px; margin:-62px 0 0 -62px; border:2px solid rgba(243,232,212,.4); border-radius:50%; z-index:5; display:none; pointer-events:none; background:rgba(8,5,4,.2); opacity:.5; }
   #gStick i { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px; border-radius:50%; background:rgba(227,168,60,.8); box-shadow:0 0 12px rgba(0,0,0,.6); }
   body.touch.playing #gStick { display:block; } #gStick.on { opacity:.95; }
+  #gStick::before { content:""; position:absolute; left:50%; top:9px; margin-left:-9px; border:9px solid transparent; border-top-width:0; border-bottom:11px solid rgba(243,232,212,.75); }   /* up is forward */
+  @media (orientation:portrait) and (pointer:coarse) { #gSub { bottom:206px; } #gTitle { padding:0 14px; } #gTitleB { font-size:clamp(30px,10.5vw,60px); line-height:1.08; } }   /* the words stay above the stick, the title inside the screen */
+  @media (orientation:portrait) { #gStick { left:50%; top:calc(100% - 118px - env(safe-area-inset-bottom, 0px)); } }                       /* an upright phone: under the thumb of either hand */
   body.film #gTitle { visibility:hidden; }
   /* a phone lying on its side: the opening and pause screens must fit a low window, and scroll if they do not */
   @media (max-height:520px) { #load, #gPause, #gEnd { overflow-y:auto; align-items:start; padding:14px 0 18px; } #load h2 { font-size:38px; margin-bottom:4px; } #load .lead { font-size:13.5px; line-height:1.4; margin-top:4px; max-width:620px; }
     #load .keys, #load em { display:none; } #load .go { margin-top:10px; } .langs { margin-top:8px; } #gPause h2 { font-size:30px; margin-bottom:8px; } #gPause p { margin:8px 0 6px; } #gPause p.k { display:none; }
-    #gTitleB { font-size:44px; } #gTitle { top:18vh; } }
+    #gTitleB { font-size:40px; } #gTitle { top:32vh; } }
   body.touch #gHint { display:none !important; }                       /* the opening screen explains the thumbs; the keys do not apply */
   @media (orientation:portrait) { #gFilm { object-fit:contain; } body.film #gSub { bottom:20vh; } }   /* an upright phone shows the whole painting */
   #gTurn { display:none; margin-top:8px !important; color:var(--gold) !important; font-size:13px !important; }
@@ -293,13 +296,13 @@
   <p class="k">W A S D או גלגלת ללכת · עכבר להביט · Shift לרוץ · N למחברת · P להפסקה</p><a class="back" href="./">חזרה לאתר</a></div></div>
 <div id="load"><div><h2>תהום הגיהנום</h2><p id="msg">טוען את המודל…</p><div id="bar"><i></i></div>
   <p class="lead">דוגמה ראשונה של המשחק: אתה דנטה. לך אחרי וירגיליוס מן היער, דרך השער, אל חוף האכרון, בסירה של כארון, ולמטה דרך חמשת המעגלים הראשונים, עד שער העיר דיס. כעשרים דקות.</p>
-  <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: אצבע בצד שמאל של המסך מזיזה אותך לכל כיוון, אצבע בצד ימין מסובבת את המבט · שלט משחק נתמך</p>
+  <p class="keys">מקלדת: W A S D או גלגלת העכבר ללכת · עכבר להביט · Shift לרוץ · N למחברת · Esc לשחרר את העכבר<br>טלפון: נגיעה בעיגול הולכת קדימה, הטיה שלו לצדדים פונה ומשיכה למטה חוזרת אחורה · גרירה בשאר המסך מסובבת את המבט · שלט משחק נתמך</p>
   <p id="gTurn">מומלץ לסובב את הטלפון לרוחב</p>
   <em lang="it">Lasciate ogne speranza, voi ch'intrate</em>
   <div class="go"><button class="main" id="begin" type="button">להתחיל ללכת</button><button id="resume" type="button" hidden></button><button id="paint0" type="button" hidden>הציור המקורי</button><a class="back" href="./">חזרה לאתר</a></div>
 </div></div>
 
-<script src="i18n.js?v=3"></script>
+<script src="i18n.js?v=4"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -316,7 +319,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSound } from './sound.js?v=1';
-import { createGame } from './game.js?v=41';
+import { createGame } from './game.js?v=42';
 import { STOPS, S, ICE, ZF, T } from './stops.js?v=27';
 
 const T_ = window.I18N.t;
