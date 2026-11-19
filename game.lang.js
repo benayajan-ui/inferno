@@ -43,7 +43,7 @@ export const TR = {
       v_minos:  [V, 'The one who gave us leave to cross the river. Let us pass, Minos.'],
       c2_task:  [V, 'This is the storm you saw from above. Lift your head, and look for two who fly together.'],
       d_call:   [D, 'You there, the two of you! Will you speak with me?'],
-      francesca:['Francesca', 'I am Francesca. This is Paolo. I was married to his brother. One day we were reading together a story of two lovers. When we came to their kiss, Paolo kissed me. My husband found out and killed us both. Since then the wind has carried us together.'],
+      francesca:['Francesca', 'I am Francesca. This is Paolo. I was married to his brother. One day we were reading together a story of two lovers. When we came to their kiss, Paolo kissed me. My husband found out, and we both died by his sword. Since then the wind has carried us together.'],
       d_faint:  [D, 'Paolo… why are you weeping? Virgil, hold me. I am going to fall.'],
       c3_in:    [V, 'You fainted, and I carried you to the third circle. Those who lived for food and drink lie here in the mud, under a cold rain.'],
       c3_task:  [V, 'This is Cerberus. Three heads, and all three are hungry. Take a handful of mud from the heap and throw it to him.'],

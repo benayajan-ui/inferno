@@ -346,8 +346,18 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
 
   // --- awakenings: a real statue leaves the frozen crowd. It turns to you, straightens, warms from marble to flesh, breathes
   const WARM = new THREE.Color(1.0, 0.72, 0.56), alive = [], ZERO = new THREE.Matrix4().set(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  // a statue is a single mesh with no skeleton, so a moving part (Cerberus's heads, Plutus's trunk) is bent in the vertex shader:
+  // `code` turns `transformed` by uPose (0 = as carved)
+  const BEND = {
+    heads: '{ vec2 P = vec2(0.30, 1.30); float w = smoothstep(0.05, 0.55, transformed.x) * smoothstep(1.15, 1.55, transformed.y); float a = uPose * 1.05 * w; vec2 q = transformed.xy - P; transformed.xy = P + vec2(q.x * cos(a) + q.y * sin(a), -q.x * sin(a) + q.y * cos(a)); }',
+    trunk: '{ vec2 P = vec2(1.0, 0.0); float w = smoothstep(0.95, 1.7, transformed.y); float a = uPose * 0.42 * w; vec2 q = transformed.yz - P; transformed.yz = P + vec2(q.x * cos(a) - q.y * sin(a), q.x * sin(a) + q.y * cos(a)); }',
+  };
+  function pose(o, kind) { o.userData.pose = { code: BEND[kind], u: { value: 0 } }; o.material = o.material.clone(); posed(o); }
+  function posed(o) { const ps = o.userData.pose, m = o.material; if (!ps || m.userData.posed) return; m.userData.posed = true;
+    m.onBeforeCompile = (sh) => { sh.uniforms.uPose = ps.u; sh.vertexShader = 'uniform float uPose;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + ps.code); };
+    m.customProgramCacheKey = () => ps.code; m.needsUpdate = true; }
   function liven(o, turn) {
-    o.material = o.material.clone();
+    o.material = o.material.clone(); o.material.userData = {}; posed(o);
     const l = new THREE.PointLight(0xffd2a0, 0, 5, 1.8); scene.add(l); chime(); dust(o);
     alive.push({ o, turn, t: 0, sy: o.scale.y, c0: o.material.color.clone(), l }); if (o.userData.solidR && !solids.includes(o)) solids.push(o);
     return o;
@@ -377,7 +387,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     for (const a of alive) {
       a.t += dt; const k = Math.min(1, a.t / 0.9), e = k * k * (3 - 2 * k);
       if (!a.hi && detail.has(a.o.userData.meshKey)) { const [geo, mat] = detail.get(a.o.userData.meshKey)[0];       // a living statue is always the detailed one
-        a.o.geometry = geo; a.o.material = mat.clone(); a.hi = true; }
+        a.o.geometry = geo; a.o.material = mat.clone(); a.o.material.userData = {}; posed(a.o); a.hi = true; }
       a.o.material.color.copy(a.c0).lerp(WARM, 0.85 * e);
       if (a.o.material.emissive) a.o.material.emissive.setRGB(0.11 * e, 0.05 * e, 0.025 * e);
       a.o.scale.y = a.sy * (1 + 0.035 * e + 0.013 * Math.sin(a.t * 2.3) * e);           // straightens, then breathes
@@ -616,8 +626,8 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   // --- short painted films that take over the screen at three moments: the dark wood before the game, the lovers' story, the gate of Dis
   //     opening at the end. Space or a tap skips one; if a film cannot play, its words still run their time. ---
   const FILMS = {
-    intro:  { src: 'film/intro.mp4', who: tr('דנטה'), text: tr('באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.'), t0: 0.8, talk: 5.2, len: 9.2 },
-    lovers: { src: 'film/lovers.mp4', who: LINES.francesca[0], text: LINES.francesca[1], t0: 0.4, talk: 16.8, len: 18.1 },
+    intro:  { src: 'film/intro.mp4', who: tr('דנטה'), text: tr('באמצע חיי מצאתי את עצמי ביער חשוך, כי איבדתי את הדרך.'), t0: 0.8, talk: 5.2, len: 9.2, voice: 'intro' },
+    lovers: { src: 'film/lovers.mp4', who: LINES.francesca[0], text: LINES.francesca[1], t0: 0.4, talk: 16.8, len: 18.1, voice: 'francesca' },
     dis:    { src: 'film/dis.mp4', who: '', text: '', t0: 0, talk: 0, len: 5.2 },
   };
   let film = null;
@@ -625,20 +635,25 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     const el = $('gFilm'), def = FILMS[name], prev = phase; phase = 'film'; keys.clear(); document.body.classList.add('film');
     film = { el, def, prev, after, t: 0, done: false, silent: false, parts: def.text ? def.text.split(/(?<=[.,])\s+/) : [] };
     if (!el.src.endsWith(def.src)) el.src = def.src;
+    // the films carry the Hebrew narration; in the other languages the film plays silent and the recorded line is played over it
+    if (LANG !== 'he' && def.voice) { const a = new Audio(`${VOICE}${def.voice}.mp3`); a.volume = sound.on ? 1 : 0; a.addEventListener('error', () => { if (film) film.vo = null; }); film.vo = a; }
     el.muted = !sound.on || LANG !== 'he'; try { el.currentTime = 0; } catch (e) {} el.classList.add('on'); el.onended = () => { if (film) film.done = true; };
     const pr = el.play(); if (pr && pr.catch) pr.catch(() => { if (film) film.silent = true; });
   }
   function runFilm(dt) {
-    film.t += dt; const def = film.def, t = film.silent ? film.t : film.el.currentTime, total = def.text.length || 1; let acc = 0, cur = '';
-    for (const part of film.parts) { if (t >= def.t0 + def.talk * acc / total) cur = part; acc += part.length + 1; }
-    if (t > def.t0 + def.talk + 0.6) cur = '';
+    film.t += dt; const def = film.def, vo = film.vo, t = film.silent || vo ? film.t : film.el.currentTime, total = def.text.length || 1; let acc = 0, cur = '';
+    if (vo && !film.voOn && film.t >= def.t0) { film.voOn = true; vo.play().catch(() => { if (film) film.vo = null; }); }
+    const talk = vo && vo.duration ? vo.duration : def.talk;                                   // the words follow the recording of this language
+    for (const part of film.parts) { if (t >= def.t0 + talk * acc / total) cur = part; acc += part.length + 1; }
+    if (t > def.t0 + talk + 0.6) cur = '';
     $('gWho').textContent = def.who; $('gText').textContent = cur; $('gSub').classList.toggle('on', !!cur);
     film.el.style.opacity = Math.min(1, film.t / 0.8);                                         // the fade is driven here, not left to a style transition
     camera.rotation.set(pitch, yaw, 0, 'YXZ');
-    if (film.done || film.t > def.len + 3 || (film.silent && film.t > def.len)) endFilm();
+    const told = !vo || vo.ended || film.t > def.t0 + talk + 1.5;                                // a longer narration holds the last picture until it is done
+    if (told && (film.done || film.t > def.len + 3 || (film.silent && film.t > def.len))) endFilm();
   }
   function endFilm() {
-    if (!film) return; const after = film.after; film.el.pause(); film.el.style.opacity = ''; film.el.classList.remove('on'); document.body.classList.remove('film'); $('gSub').classList.remove('on');
+    if (!film) return; const after = film.after; film.el.pause(); if (film.vo) film.vo.pause(); film.el.style.opacity = ''; film.el.classList.remove('on'); document.body.classList.remove('film'); $('gSub').classList.remove('on');
     phase = film.prev; film = null; if (after) after();
   }
   addEventListener('keydown', (e) => { if (e.code === 'Space' && film && film.t > 1) endFilm(); });
@@ -654,11 +669,11 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (phase === 'limbo') runPoets(dt); runLovers(dt); if (phase === 'gluttony') runGluttony(dt); if (phase === 'avarice') runAvarice(dt); }
 
   // --- the third circle: you come to under the rain; Cerberus bars the way until he is fed a fistful of mud (Inferno VI, 22-33) ---
-  const L3 = S * -58; let cerb = null, mud = false, fed = false, c3On = false, nagged = false; const mounds = [], shots = [];
+  const L3 = S * -58; let cerb = null, mud = false, fed = false, c3On = false, nagged = false, cerbT = 0, calmT = -1; const mounds = [], shots = [];
   ROUTES.c3 = [p(41.8, 92.6, L3), ...arc(41.6, 94, 97, L3)];
   ROUTES.c3b = [...arc(41.3, 98, 107.5, L3)];
   function setupGluttony() {
-    cerb = find('Cerberus'); if (cerb) { cerb.userData.solidR = 2.5; solids.push(cerb); }
+    cerb = find('Cerberus'); if (cerb) { cerb.userData.solidR = 2.5; solids.push(cerb); pose(cerb, 'heads'); }
     game.lane += clearAlong(arc(41.6, 89.5, 109, L3), 0.85);
     spoke.c3 = speaker(p(42.4, 106.5, L3), 3.5, p(42.6, 106.5, 0));
     const geo = new THREE.SphereGeometry(0.3, 12, 6);
@@ -683,24 +698,28 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
         const ball = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshStandardMaterial({ color: 0x2c1d12, roughness: 0.6 })); scene.add(ball);
         shots.push({ ball, t: 0, from: camera.position.clone(), to: new THREE.Vector3(v.x, v.y + 1.5, v.z) }); }
       else if (d < 3.2 && !nagged) { nagged = true; say('c3_empty'); } }
+    if (cerb && cerb.userData.pose) { const u = cerb.userData.pose.u; cerbT += dt;
+      if (calmT >= 0) { calmT += dt; const k = Math.min(1, calmT / 0.7), e = k * k * (3 - 2 * k);                          // the heads go down, chew for a while, then stay low
+        u.value = 0.9 * e + (calmT < 7 ? 0.08 * Math.sin(calmT * 9) * e : 0.02 * Math.sin(calmT * 2)); }
+      else u.value = c3On ? 0.05 + 0.05 * Math.sin(cerbT * 2.1) + 0.03 * Math.sin(cerbT * 5.3) : 0; }                 // waiting, he weaves his heads
     for (let i = shots.length - 1; i >= 0; i--) { const sh = shots[i]; sh.t += dt / 0.55; const t = Math.min(1, sh.t);
       sh.ball.position.lerpVectors(sh.from, sh.to, t); sh.ball.position.y += Math.sin(t * Math.PI) * 0.9;
       if (t === 1) { scene.remove(sh.ball); shots.splice(i, 1); calm(); } }
   }
   function calm() {
-    if (cerb) { liven(cerb, false); cerb.userData.solidR = 1.15; }
+    if (cerb) { liven(cerb, false); cerb.userData.solidR = 1.15; calmT = 0; }
     note(8); say('c3_ok', null, true); leaveGluttony();
     TRIG.push({ at: p(41.6, 105, L3), r: 2.6, run: () => { if (spoke.c3) liven(spoke.c3, true); murmur('ciacco', spoke.c3 ? spoke.c3.position : p(42.6, 106.5, L3), () => say('v_ciacco')); } });   // Ciacco is there for whoever walks over to him
   }
 
   // --- the fourth circle: Plutus collapses at a word; the pushers cannot be woken, because nobody can tell them apart (Inferno VII) ---
-  const L4 = S * -66.7; let plutus = null, plutusDown = -1, c4On = false, tried = []; const pushers = [];
+  const L4 = S * -66.7; let plutus = null, plutusDown = -1, plutusRoar = -1, c4On = false, tried = []; const pushers = [];
   const stair4 = Array.from({ length: 7 }, (_, i) => p(40.05, 95.6 - i * 1.0, L3 - 0.2 + (L4 - L3) * i / 6));   // top at 96 degrees, foot at 89
   ROUTES.c3out = [...arc(40.95, 99.5, 97.5, L3), p(40.5, 96.4, L3), ...stair4, p(39.6, 88.6, L4)];
   ROUTES.toPlutus = [...arc(38.7, 88, 67, L4)];
   ROUTES.c4 = [...arc(38.3, 64, 38, L4)];
   function setupAvarice() {
-    plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); }
+    plutus = find('Plutus'); if (plutus) { plutus.userData.solidR = 1.5; solids.push(plutus); pose(plutus, 'trunk'); }
     game.lane += clearAlong(ROUTES.c3out, 0.8) + clearAlong([...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], 0.9, true);
     // the two rows stand still in the game, so that the lane stays open; the boulders along it are cleared like the statues
     const road = [...ROUTES.toPlutus, ...ROUTES.c4, ...ROUTES.c4out], lows = new Set(LOD.map((e) => e.low)), q = new THREE.Vector3(), m = new THREE.Matrix4();
@@ -717,7 +736,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
   function leaveGluttony() { lockY = null; hud('עבור ליד קרברוס אל המדרגות'); route('c3out'); TRIG.push({ at: p(39.9, 89.2, L4), r: 1.4, run: enterAvarice }); }
   function enterAvarice() {
     hush(); phase = 'avarice'; save('avarice'); title('הקמצנים והבזבזנים', 'המעגל הרביעי'); route('toPlutus'); lock(L4); hud('לך אחרי וירגיליוס אל דוחפי הסלעים');
-    TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { stay(4); if (plutus) liven(plutus, false);
+    TRIG.push({ at: p(38.7, 67.5, L4), r: 3.2, run: () => { stay(4); if (plutus) { liven(plutus, true); plutusRoar = 0; }
       say('plutus', () => note(9), true); say('v_plutus', () => { hold = null; hud('לך אחרי וירגיליוס אל דוחפי הסלעים'); plutusDown = 0; route('c4'); }, true); } },
       { at: p(38.3, 59.5, L4), r: 3, run: () => { hold = { x: pos.x, z: pos.z, r: 1.6 }; hud('עצור ליד וירגיליוס');
         say('c4_in', null, true); say('d_c4', () => { hold = null; c4On = true; hud('נסה לדבר עם שלושה מדוחפי הסלעים · 0/3'); }, true); } });
@@ -727,8 +746,11 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     // the two rows lean into their boulders, meet with a crack, fall back and come again
     rowT += dt; { const u = (rowT % 3.4) / 3.4, k = u < 0.72 ? u / 0.72 : 1 - (u - 0.72) / 0.28, was = rows.hit; rows.hit = u >= 0.72;
       rows.forEach((o, i) => { o.rotation.y = (i ? -1 : 1) * 0.017 * (k * k - 0.5); }); if (rows.hit && !was && Math.abs(pos.y - L4) < 2) knock(); }
+    if (plutus && plutusRoar >= 0) { plutusRoar += dt; const t = plutusRoar, wind = Math.min(1, t / 0.4), go = Math.max(0, Math.min(1, (t - 0.4) / 0.3)), a = alive.find((x) => x.o === plutus);
+      plutus.userData.pose.u.value = (plutusDown >= 0 ? 1 - plutusDown : 1) * (-0.55 * wind * (1 - go) + go * (0.8 + 0.12 * Math.sin(t * 31)));   // back, then forward at you, shaking
+      if (a && plutusDown < 0) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 + 0.07 * go); }
     if (plutus && plutusDown >= 0 && plutusDown < 1) { plutusDown = Math.min(1, plutusDown + dt / 1.4);                 // he falls like sails when the mast snaps
-      const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) a.sy = (a.sy0 = a.sy0 || a.sy) * (1 - 0.6 * k); plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
+      const a = alive.find((x) => x.o === plutus), k = plutusDown * plutusDown; if (a) { a.turn = false; a.sy = (a.sy0 = a.sy0 || a.sy) * (1.07 - 0.67 * k); } plutus.rotation.z = 0.5 * k; plutus.userData.solidR = 1.5 - 1.1 * k; }
     for (let i = dull.length - 1; i >= 0; i--) { const d = dull[i]; d.t += dt; d.l.intensity = 3 * Math.max(0, 1 - d.t / 1.6) * (0.6 + 0.4 * Math.sin(d.t * 30)); if (d.t > 1.6) { scene.remove(d.l); dull.splice(i, 1); } }
     if (!c4On) return;
     for (const q of pushers) { if (Math.hypot(q.x - pos.x, q.z - pos.z) > 2.2 || tried.some((t) => t.distanceTo(q) < 2.0)) continue;
@@ -841,8 +863,9 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     if (!matchMedia('(pointer: coarse)').matches) game.lock();
     setTimeout(() => $('gHint').classList.add('seen'), 9000);
   };
-  game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); };
+  game.update = (dt) => { if (game.paused) { camera.rotation.set(pitch, yaw, 0, 'YXZ'); return; } dusting(dt); compass(); if (!game.ended) walk(dt); else camera.rotation.set(pitch, yaw, 0, 'YXZ'); moveGuide(dt); triggers(); runQuest(dt); stages(dt); speak(dt); murmuring(dt); stir(dt); if (spy) { camera.position.copy(spy[0]); camera.lookAt(spy[1]); } };
+  let spy = null;                                                                    // automated checks: look at the scene from a fixed point
   // for automated checks: jump to a place on the route
-  game.debug = { pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
+  game.debug = { find, scene, camera, detail, alive, spy: (a, b) => { spy = a ? [new THREE.Vector3(...a), new THREE.Vector3(...b)] : null; }, pos, goto: (r, a, y) => { pos.copy(p(r, a, y)); }, figs: () => kept.filter((k) => k.visible && !/^(Dante|Virgil)_/.test(k.userData.name)).map((k) => k.userData.name + ':' + k.userData.meshKey + ':' + (k.userData.hi ? 'hi' : 'lo') + ':' + k.geometry.attributes.position.count), ground: (r, a, y) => { const q = p(r, a, y); return groundAt(q.x, y, q.z); }, look: (y, x = 0) => { yaw = y; pitch = x; }, state: () => ({ pos: pos.toArray().map((n) => +n.toFixed(2)), yaw: +yaw.toFixed(2), guideAt, got: [...got], queue: queue.length, speaking: speaking && LINES[queue.id], ended: game.ended, film: !!film, loversAt: lovers[0] ? lovers[0].o.position.toArray().map((n) => +n.toFixed(1)) : null, gaze: +gaze.toFixed(1), lockY, cine: cine && cine.shot, gateHold, cineWait: +cineWait.toFixed(1), sail2: +sail2.toFixed(1), medT: +medT.toFixed(1), stoned: +stoned.toFixed(1), angelT: +angelT.toFixed(1), doors: doors.length, tried: tried.length, pushers: pushers.length, mud, fed, lane: game.lane, poetAt, lovers: lovers.length, phase, aboard, boatA: +boatA.toFixed(1), quest: quest.map((q) => (q.ok ? 'ok' : 'no') + (q.on ? '+' : q.done ? '!' : '')).join(' '), alive: alive.length, tris: game.triangles, cleared: game.cleared, moved: +moved.toFixed(1) }) };
   return game;
 }
