@@ -917,7 +917,7 @@ export function createGame({ scene, camera, renderer, sound, detail, kept, LOD, 
     el.addEventListener('touchmove', (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (!s) continue;
       if (s.left) { let dx = t.clientX - s.x0, dy = t.clientY - s.y0; const d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
         knob.style.transform = `translate(${dx}px,${dy}px)`; stick.x = dx / R; stick.y = dy / R; }
-      else { const k = 3.2 / Math.max(320, Math.min(innerWidth, 900)); yaw -= (t.clientX - s.x) * k; pitch = Math.max(-1.3, Math.min(1.3, pitch - (t.clientY - s.y) * k * 0.8)); }   // a swipe across the screen turns you about the same on any phone
+      else { const k = 3.2 / Math.max(320, Math.min(innerWidth, 900)); yaw += (t.clientX - s.x) * k; pitch = Math.max(-1.3, Math.min(1.3, pitch + (t.clientY - s.y) * k * 0.8)); }   // the finger drags the picture with it, as in a panorama: a swipe to the right brings the picture to the right
       s.x = t.clientX; s.y = t.clientY; } }, { passive: true });
     const up = (e) => { for (const t of e.changedTouches) { const s = touches.get(t.identifier); if (s && s.left) rest(); touches.delete(t.identifier); } };
     el.addEventListener('touchend', up); el.addEventListener('touchcancel', up);
